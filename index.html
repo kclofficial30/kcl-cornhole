@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v4.4</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v4.5</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -34,7 +34,6 @@
 
         .kca-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
-        /* 탭 가로 스크롤 */
         .category-tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
         .cat-tab { padding: 6px 12px; background: #e0e0e0; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-weight: bold; white-space: nowrap; }
         .cat-tab.active { background: var(--dark); color: white; }
@@ -63,6 +62,9 @@
 
         .btn { padding: 12px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; width: 100%; }
         .btn-green { background: var(--green); color: white; border-bottom: 5px solid #00947a; padding: 20px; font-size: 1.3rem; }
+        .btn-red { background: var(--red); color: white; }
+        .btn-dark { background: var(--dark); color: white; }
+
         .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .rank-table th, .rank-table td { padding: 10px 5px; border: 1px solid #eee; text-align: center; }
 
@@ -159,12 +161,16 @@
                 </div>
                 <div style="text-align:center; margin-top:20px; padding:20px; background:white; border-radius:15px; border:2px solid #ddd;">
                     <button class="btn-green" onclick="submitRoundRef()">라운드 결과 확정</button>
-                    <button class="btn" style="background:#95a5a6; color:white; width:100%; margin-top:10px; height:55px; font-weight:bold;" onclick="undoRoundRef()">↩️ 직전 라운드 취소</button>
+                    <button class="btn" style="background:#95a5a6; color:white; width:100%; margin-top:10px; height:55px; font-weight:bold;" onclick="undoRoundRef()">↩️ 직전 라운드 결과 취소</button>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-                        <button class="btn btn-red" style="height:50px;" onclick="declareWalkover('red')">🏳️ RED 기권</button>
+                        <button class="btn btn-red" style="height:50px; background-color: var(--red);" onclick="declareWalkover('red')">🏳️ RED 기권</button>
                         <button class="btn btn-red" style="background:var(--blue); height:50px;" onclick="declareWalkover('blue')">🏳️ BLUE 기권</button>
                     </div>
-                    <button class="btn btn-dark" style="width:100%; height:65px; margin-top:20px;" onclick="finishMatchAuto()">🏆 경기 최종 종료 및 전송</button>
+                    <div style="overflow-x: auto; margin-top:15px; max-height: 200px;">
+                        <p style="font-size:0.8rem; font-weight:bold; margin-bottom:5px;">📊 라운드별 기록</p>
+                        <table class="rank-table" style="font-size:0.75rem;"><thead><tr><th>R</th><th>RED</th><th>BLUE</th></tr></thead><tbody id="ref-hist-body"></tbody></table>
+                    </div>
+                    <button class="btn" style="width:100%; height:65px; margin-top:20px; background-color: var(--dark); color: white;" onclick="finishMatchAuto()">🏆 경기 최종 종료 및 클라우드 전송</button>
                 </div>
             </div>
         </div>
@@ -232,13 +238,13 @@
     let refS = {red:0, blue:0}, refI = {r3:0, r1:0, b3:0, b1:0}, tRef = null, rLog = [], activeM = null;
     let tournamentName = "데이터 실시간 통합";
 
-    // --- [서버 동기화 리스너: 새로고침 대응] ---
+    // --- [서버 동기화 리스너] ---
     db.ref('kca_tournament').on('value', (snap) => {
         const data = snap.val();
         categories = data || [];
         if (currentCatIdx >= categories.length) currentCatIdx = 0;
         calcStats(); 
-        renderTabs(); // 새로고침 시 탭 버튼을 다시 생성하여 오류 수정
+        renderTabs(); 
         refreshUIs();
     });
 
@@ -253,13 +259,18 @@
         document.getElementById('hq-tournament-name').value = tournamentName === "데이터 실시간 통합" ? "" : tournamentName;
         document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`;
         document.getElementById('rank-view-title').innerText = `📊 ${tournamentName} 순위`;
-        document.getElementById('page-title').innerText = `${tournamentName} v4.4`;
+        document.getElementById('page-title').innerText = `${tournamentName} v4.5`;
     }
 
+    // 초기화 기능 강화: 파일 선택 초기화 및 로컬 변수 즉시 반영
     function resetTournamentAll() {
         if (!confirm("⚠️ 대회명, 명단, 대진표를 모두 초기화할까요?")) return;
         const updates = {}; updates['kca_tournament'] = null; updates['kca_info/name'] = "데이터 실시간 통합";
-        db.ref().update(updates).then(() => { categories=[]; tournamentName="데이터 실시간 통합"; currentCatIdx=0; renderTabs(); refreshUIs(); alert("초기화 완료"); });
+        db.ref().update(updates).then(() => { 
+            categories=[]; tournamentName="데이터 실시간 통합"; currentCatIdx=0; 
+            document.getElementById('xlsx-hq').value = ""; // 파일 입력창 초기화
+            renderTabs(); refreshUIs(); alert("초기화 완료"); 
+        });
     }
 
     function showView(v) {
@@ -298,6 +309,7 @@
         document.getElementById('round-info-disp').innerText = `RED ${refI.r3*3+refI.r1} : ${refI.b3*3+refI.b1} BLUE`;
     }
 
+    // 라운드 결과 확정 시 알림 추가
     function submitRoundRef() {
         let rs = refI.r3*3+refI.r1, bs = refI.b3*3+refI.b1, diff = rs-bs;
         let rg = diff>0?diff:0, bg = diff<0?Math.abs(diff):0;
@@ -310,6 +322,7 @@
         ["r3-q","r1-q","b3-q","b1-q"].forEach(id=>document.getElementById(id).innerText=0);
         ["r0-q","b0-q"].forEach(id=>document.getElementById(id).innerText=4);
         document.getElementById('round-info-disp').innerText = `RED 0 : 0 BLUE`;
+        alert("라운드 결과가 반영되었습니다."); // 확인 팝업 추가
         tStop();
         if(refS.red >= 21 || refS.blue >= 21) alert("🎉 경기 종료 점수 도달!");
     }
@@ -325,6 +338,7 @@
         if (confirm(`${s.toUpperCase()} 기권 승인?`)) { refS = { red: 0, blue: 0 }; rLog = [{ round: 'W.O', r: 0, b: 0, r_orig: '기권', b_orig: '승리' }]; finishMatchAuto(winnerName); }
     }
 
+    // 전송 성공 시 문구 정정
     function finishMatchAuto(fw = null) {
         try {
             const cat = categories[currentCatIdx]; const m = cat.rounds[activeM.rIdx][activeM.mIdx];
@@ -332,7 +346,10 @@
             m.score = `${refS.red}:${refS.blue}`; m.redP = activeM.redP; m.blueP = activeM.blueP;
             m.history = [...rLog]; m.judge = document.getElementById('ref-judge').value || "심판";
             pushNext(activeM.rIdx, activeM.mIdx, m.winner);
-            db.ref('kca_tournament').set(categories).then(() => { alert("✅ 전송 완료!"); showView('bracket'); });
+            db.ref('kca_tournament').set(categories).then(() => { 
+                alert("전송 완료 ! 해당 경기의 결과 수정은 운영본부에 문의하세요."); // 문구 정정
+                showView('bracket'); 
+            });
         } catch (e) { alert("오류: " + e.message); }
     }
 
@@ -347,7 +364,7 @@
         }); 
     }
 
-    function calcStats() { categories.forEach(cat => { cat.stats = {}; cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"대기"}); if(cat.rounds) { cat.rounds.forEach((round, rIdx) => { round.forEach(m => { if(m.winner && m.score.includes(':')) { const s = m.score.split(':').map(Number); const winN = m.winner, lossN = (m.winner === m.redP) ? m.blueP : m.redP; if(cat.stats[winN]) { cat.stats[winN].win++; cat.stats[winN].status = "진행중"; } if(cat.stats[lossN]) { cat.stats[lossN].loss++; cat.stats[lossN].status = m.stage+" 탈락"; } } }); }); } }); }
+    function calcStats() { categories.forEach(cat => { cat.stats = {}; cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"대기"}); if(cat.rounds) { cat.rounds.forEach((round, rIdx) => { round.forEach(m => { if(m.winner && m.score.includes(':')) { const s = m.score.split(':').map(Number); const winN = m.winner, lossN = (m.winner === m.redP) ? m.blueP : m.redP; if(cat.stats[winN]) { cat.stats[winN].win++; cat.stats[winN].status = "진행중"; } if(cat.stats[lossN]) { cat.stats[lossN].diff -= Math.abs(s[0]-s[1]); cat.stats[lossN].loss++; cat.stats[lossN].status = m.stage+" 탈락"; } } }); }); } }); }
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     function renderBracketUI(id, isAdmin) { const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat || !cat.rounds) return; cat.rounds.forEach((round, rIdx) => { const col = document.createElement('div'); col.className = "round-column"; col.innerHTML = `<div class="stage-label">${round[0].stage}</div>`; round.forEach((m, mIdx) => { const box = document.createElement('div'); box.className = "match-box"; box.onclick = () => { if(m.winner) showDetail(rIdx, mIdx); else if(m.p1 && m.p2) tryAccess('referee', {cat:currentCatIdx, r:rIdx, m:mIdx}); }; let tag1 = m.redP === m.p1 ? '<span style="color:var(--red);font-weight:bold;">R </span>' : (m.blueP === m.p1 ? '<span style="color:var(--blue);font-weight:bold;">B </span>' : ''); let tag2 = m.redP === m.p2 ? '<span style="color:var(--red);font-weight:bold;">R </span>' : (m.blueP === m.p2 ? '<span style="color:var(--blue);font-weight:bold;">B </span>' : ''); box.innerHTML = `<div>${tag1}${m.p1||'.'}</div><div>${tag2}${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;">${m.score||'대기'}</div>`; if(isAdmin && m.winner) box.innerHTML += `<div style="color:red;text-align:right;font-size:0.6rem;" onclick="event.stopPropagation(); resetMAdmin(${rIdx},${mIdx})">리셋</div>`; col.appendChild(box); }); root.appendChild(col); }); }
     function renderRankUI(id) { const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat) return; Object.keys(cat.stats).forEach((n, i) => { const p = cat.stats[n]; const r = root.insertRow(); r.innerHTML = `<td>${i+1}</td><td>${n}</td><td>${p.status}</td><td>${p.diff}</td><td>${p.win}W ${p.loss}L</td>`; }); }
