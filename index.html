@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v7.7</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v7.8</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -28,9 +28,9 @@
         .round-column { min-width: 210px; display: flex; flex-direction: column; gap: 12px; }
         .stage-label { background: var(--dark); color: white; padding: 5px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 0.8rem; }
         .match-box { border: 2px solid #eee; border-radius: 10px; padding: 10px; background: white; cursor: pointer; min-height: 90px; display: flex; flex-direction: column; justify-content: center; }
-        .match-box.empty-spacer { border: none; background: transparent; cursor: default; }
+        .match-box.empty-spacer { border: none; background: transparent; }
 
-        /* 심판석 스코어보드 스타일 */
+        /* 스코어보드 디자인 */
         .scoreboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .team-section { border-radius: 15px; padding: 15px 8px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .team-section.red { background: linear-gradient(to bottom, #ff5e57, var(--red)); }
@@ -42,12 +42,9 @@
         .sub-score-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 8px; margin-top: 10px; }
         .sub-score-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; }
         .count-btn { width: 42px; height: 42px; border: none; border-radius: 10px; background: white; color: var(--dark); font-size: 1.3rem; font-weight: bold; cursor: pointer; }
-        .count-btn.plus { width: 50px; height: 50px; font-size: 1.6rem; }
 
-        /* 파울 버튼 시각화 최종 수리 (v7.7) */
-        .foul-btn { width: 35px; height: 35px; border-radius: 8px; border: 2px solid #7f8c8d; background-color: #bdc3c7 !important; color: #7f8c8d !important; font-weight: 900; cursor: pointer; font-size: 0.8rem; transition: 0.1s; }
-        .foul-btn.yellow.active { background-color: #f1c40f !important; color: #000 !important; border-color: #fff !important; }
-        .foul-btn.red-card.active { background-color: #d63031 !important; color: #fff !important; border-color: #fff !important; }
+        /* 파울 버튼 디자인 (v7.8 핵심 수정) */
+        .foul-btn { width: 35px; height: 35px; border-radius: 8px; border: 2px solid #95a5a6; background: #bdc3c7 !important; color: #7f8c8d !important; font-weight: 900; cursor: pointer; font-size: 0.8rem; transition: 0.1s; }
 
         .btn { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1rem; width: 100%; }
         .btn-green { background: var(--green); color: white; border-bottom: 4px solid #008a6f; }
@@ -90,7 +87,7 @@
                 <span id="ref-cat-name">종목</span>
             </div>
             <div id="ref-side-zone" style="background:#fffbe6; padding:20px; border-radius:15px; border:2px dashed #ffe58f; margin-bottom:15px; text-align:center;">
-                <p style="margin-bottom:12px; font-weight:bold;">🎲 진영 배정</p>
+                <p style="margin-bottom:12px; font-weight:bold;">🎲 경기 진영 배정</p>
                 <div style="display:flex; gap:10px; align-items:center;"><select id="sel-red-p" onchange="syncSides('red')" style="flex:1; padding:12px; border-radius:10px; border:2px solid var(--red); font-weight:bold;"></select><b>VS</b><select id="sel-blue-p" onchange="syncSides('blue')" style="flex:1; padding:12px; border-radius:10px; border:2px solid var(--blue); font-weight:bold;"></select></div>
             </div>
 
@@ -99,7 +96,7 @@
                     <div class="team-section red">
                         <div id="timer-red" class="timer-top">15</div>
                         <button class="btn" style="background:white; color:var(--red); padding:8px; font-size:0.8rem; margin-bottom:10px;" onclick="tStart('red')">START</button>
-                        <div id="red-name-label" style="font-weight:900; font-size:1rem; background:rgba(0,0,0,0.2); border-radius:5px;">RED</div>
+                        <div id="red-name-label" style="font-weight:900; font-size:1rem; background:rgba(0,0,0,0.2); border-radius:5px; padding:2px 5px;">RED</div>
                         <div id="ref-red-total" class="score-display">0</div>
                         <div class="sub-score-box">
                             <div class="sub-score-row"><span>Hole(3)</span><button class="count-btn" onclick="adj('r',3,-1)">-</button><span id="r3-q" style="font-size:1.5rem;font-weight:900;">0</span><button class="count-btn plus" onclick="adj('r',3,1)">+</button></div>
@@ -109,7 +106,7 @@
                     <div class="team-section blue">
                         <div id="timer-blue" class="timer-top">15</div>
                         <button class="btn" style="background:white; color:var(--blue); padding:8px; font-size:0.8rem; margin-bottom:10px;" onclick="tStart('blue')">START</button>
-                        <div id="blue-name-label" style="font-weight:900; font-size:1rem; background:rgba(0,0,0,0.2); border-radius:5px;">BLUE</div>
+                        <div id="blue-name-label" style="font-weight:900; font-size:1rem; background:rgba(0,0,0,0.2); border-radius:5px; padding:2px 5px;">BLUE</div>
                         <div id="ref-blue-total" class="score-display">0</div>
                         <div class="sub-score-box">
                             <div class="sub-score-row"><span>Hole(3)</span><button class="count-btn" onclick="adj('b',3,-1)">-</button><span id="b3-q" style="font-size:1.5rem;font-weight:900;">0</span><button class="count-btn plus" onclick="adj('b',3,1)">+</button></div>
@@ -168,9 +165,9 @@
     db.ref('kca_info/name').on('value', (s) => { tournamentName = s.val() || "데이터 실시간 통합"; updateTitleUIs(); });
 
     function updateTournamentName() { const n = document.getElementById('hq-tournament-name').value; if(n.trim()) db.ref('kca_info/name').set(n); }
-    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v7.7`; }
+    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v7.8`; }
 
-    // --- [타이머 수리: v5.0 방식 고립] ---
+    // --- [심판석 로직 수리 및 고정] ---
     function tStart(team) {
         if (isTimerRunning) { tStop(); return; }
         isTimerRunning = true;
@@ -190,15 +187,24 @@
         document.querySelectorAll('.timer-top').forEach(el => { el.innerText = "15"; el.classList.remove('warning'); });
     }
 
-    // --- [파울 버튼 수리: v7.7] ---
+    // 파울 버튼 수리 (v7.8 색상 강제 부여)
     function toggleFoul(team, type) {
         const key = team[0] + '_' + type;
         const label = type === 'y' ? "경고" : "파울";
-        const msg = fouls[key] ? `${label}를 해제하시겠습니까?` : `${label}를 적용하시겠습니까?`;
-        if (confirm(msg)) {
+        const currentMsg = fouls[key] ? `${label}를 해제하시겠습니까?` : `${label}를 적용하시겠습니까?`;
+        
+        if (confirm(currentMsg)) {
             fouls[key] = !fouls[key];
             const btn = document.getElementById('foul-' + key);
-            if (fouls[key]) btn.classList.add('active'); else btn.classList.remove('active');
+            if (fouls[key]) {
+                btn.style.backgroundColor = (type === 'y') ? "#f1c40f" : "#d63031";
+                btn.style.color = (type === 'y') ? "#000" : "#fff";
+                btn.classList.add('active');
+            } else {
+                btn.style.backgroundColor = "#bdc3c7";
+                btn.style.color = "#7f8c8d";
+                btn.classList.remove('active');
+            }
         }
     }
 
@@ -219,11 +225,12 @@
             finishMatchAuto(winnerP);
         }
     }
+
     function setupRefereeView(r, m) {
         const cat = categories[currentCatIdx]; if(!cat) return; const match = cat.rounds[r][m]; activeM = { rIdx: r, mIdx: m, ...match };
         document.getElementById('ref-cat-name').innerText = cat.name; document.getElementById('ref-stage-name').innerText = match.stage;
         document.getElementById('ref-hist-body').innerHTML = ""; rLog = []; refS = {red:0, blue:0}; refI = {r3:0, r1:0, b3:0, b1:0}; fouls = {r_y:false, r_r:false, b_y:false, b_r:false};
-        document.querySelectorAll('.foul-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.foul-btn').forEach(b => { b.style.backgroundColor="#bdc3c7"; b.style.color="#7f8c8d"; b.classList.remove('active'); });
         const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); s1.innerHTML=s2.innerHTML='<option>선택</option>';
         [match.p1, match.p2].forEach(p=>{ if(p) { s1.add(new Option(p,p)); s2.add(new Option(p,p)); } });
         document.getElementById('ref-side-zone').style.display='block'; document.getElementById('ref-engine-ui').style.display='none'; updateRefUI();
@@ -269,7 +276,7 @@
         db.ref('kca_tournament').set(categories).then(() => alert("대진표 생성 완료"));
     }
     function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0) { const targetM = cat.rounds[0][m].targetM; if(!nextR[targetM].p1) nextR[targetM].p1 = w; else nextR[targetM].p2 = w; } else { let nm = Math.floor(m/2); if(!nextR[nm].p1) nextR[nm].p1=w; else nextR[nm].p2=w; } }
-    function resetMAdmin(r, m) { if(confirm("결과를 리셋할까요? 진출 경로가 자동 삭제됩니다.")){ const cat = categories[currentCatIdx], winnerName = cat.rounds[r][m].winner; cat.rounds[r][m].winner = null; cat.rounds[r][m].score = ""; cat.rounds[r][m].history = []; if (winnerName) clearPlayerRoute(r + 1, winnerName); db.ref('kca_tournament').set(categories); } }
+    function resetMAdmin(r, m) { if(confirm("결과를 리셋할까요? 진출 경로도 자동 삭제됩니다.")){ const cat = categories[currentCatIdx], winnerName = cat.rounds[r][m].winner; cat.rounds[r][m].winner = null; cat.rounds[r][m].score = ""; cat.rounds[r][m].history = []; if (winnerName) clearPlayerRoute(r + 1, winnerName); db.ref('kca_tournament').set(categories); } }
     function clearPlayerRoute(startRound, name) { const cat = categories[currentCatIdx]; if (!cat || startRound >= cat.rounds.length) return; for (let r = startRound; r < cat.rounds.length; r++) { cat.rounds[r].forEach(match => { if (match.p1 === name || match.p2 === name) { if (match.p1 === name) match.p1 = ""; if (match.p2 === name) match.p2 = ""; if (match.winner === name) { match.winner = null; match.score = ""; match.history = []; } } }); } }
 
     // --- [보안 및 UI 보조] ---
@@ -287,8 +294,7 @@
         });
     }
     function createMatchBox(m, r, mi, isAdmin) {
-        const box = document.createElement('div'); box.className = "match-box";
-        box.onclick = () => { if(m.winner) showDetail(r, mi); else if(m.p1 && m.p2) tryAccess('referee', {cat:currentCatIdx, r, m:mi}); };
+        const box = document.createElement('div'); box.className = "match-box"; box.onclick = () => { if(m.winner) showDetail(r, mi); else if(m.p1 && m.p2) tryAccess('referee', {cat:currentCatIdx, r, m:mi}); };
         box.innerHTML = `<div>${m.p1||'.'}</div><div>${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;color:gray;">${m.score||'대기'}</div>`;
         if(isAdmin && m.winner) box.innerHTML += `<div style="color:red;text-align:right;font-size:0.6rem;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋</div>`; return box;
     }
