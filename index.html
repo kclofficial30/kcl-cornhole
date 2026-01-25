@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v7.2</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v7.3</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -39,7 +39,6 @@
         .team-section.blue { background: linear-gradient(to bottom, #54a0ff, var(--blue)); }
         .timer-top { font-size: 1.8rem; font-weight: 900; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 2px 10px; display: inline-block; margin-bottom: 8px; font-family: monospace; min-width: 60px; }
         .timer-top.warning { color: #ff0000; animation: blink 0.5s infinite; background: white; }
-        @keyframes blink { 50% { opacity: 0.3; } }
         .score-display { font-size: 5rem; font-weight: 1000; line-height: 1; margin: 5px 0; }
         .sub-score-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 8px; margin-top: 10px; }
         .sub-score-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; }
@@ -47,14 +46,12 @@
         .count-btn.plus { width: 50px; height: 50px; font-size: 1.6rem; }
         .count-val { font-size: 1.5rem; font-weight: 900; min-width: 25px; }
 
-        /* 파울 카드 스타일 (v7.2 수정완료) */
-        .foul-wrap { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
-        .foul-btn { padding: 8px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.6); background: transparent; color: white; font-weight: 900; cursor: pointer; font-size: 0.75rem; flex: 1; transition: all 0.2s; }
-        .foul-btn.active.yellow { background: #f1c40f !important; color: #000 !important; border-color: #fff !important; }
-        .foul-btn.active.red-card { background: #d63031 !important; color: #fff !important; border-color: #fff !important; }
+        /* 파울 버튼 시각화 (진하기 변경 방식) */
+        .foul-btn { width: 35px; height: 35px; border-radius: 8px; border: 2px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.05); color: rgba(0,0,0,0.2); font-weight: 900; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
+        .foul-btn.yellow.active { background: #f1c40f !important; color: #000 !important; border-color: #f39c12 !important; box-shadow: 0 0 8px rgba(241,196,15,0.6); }
+        .foul-btn.red-card.active { background: #d63031 !important; color: #fff !important; border-color: #c0392b !important; box-shadow: 0 0 8px rgba(214,48,49,0.6); }
 
-        .center-ctrl { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
-        .btn { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1rem; width: 100%; }
+        .btn { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; width: 100%; transition: 0.2s; }
         .btn-green { background: var(--green); color: white; border-bottom: 4px solid #008a6f; }
         .btn-gray { background: #95a5a6; color: white; border-bottom: 4px solid #7f8c8d; }
         .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
@@ -110,10 +107,6 @@
                             <div class="sub-score-row"><span>Hole(3)</span><button class="count-btn" onclick="adj('r',3,-1)">-</button><span id="r3-q" class="count-val">0</span><button class="count-btn plus" onclick="adj('r',3,1)">+</button></div>
                             <div class="sub-score-row"><span>Board(1)</span><button class="count-btn" onclick="adj('r',1,-1)">-</button><span id="r1-q" class="count-val">0</span><button class="count-btn plus" onclick="adj('r',1,1)">+</button></div>
                         </div>
-                        <div class="foul-wrap">
-                            <button class="foul-btn yellow" id="foul-r-y" onclick="toggleFoul('red', 'y')">YELLOW</button>
-                            <button class="foul-btn red-card" id="foul-r-r" onclick="toggleFoul('red', 'r')">RED CARD</button>
-                        </div>
                     </div>
                     <div class="team-section blue">
                         <div id="timer-blue" class="timer-top">15</div>
@@ -124,18 +117,23 @@
                             <div class="sub-score-row"><span>Hole(3)</span><button class="count-btn" onclick="adj('b',3,-1)">-</button><span id="b3-q" class="count-val">0</span><button class="count-btn plus" onclick="adj('b',3,1)">+</button></div>
                             <div class="sub-score-row"><span>Board(1)</span><button class="count-btn" onclick="adj('b',1,-1)">-</button><span id="b1-q" class="count-val">0</span><button class="count-btn plus" onclick="adj('b',1,1)">+</button></div>
                         </div>
-                        <div class="foul-wrap">
-                            <button class="foul-btn yellow" id="foul-b-y" onclick="toggleFoul('blue', 'y')">YELLOW</button>
-                            <button class="foul-btn red-card" id="foul-b-r" onclick="toggleFoul('blue', 'r')">RED CARD</button>
-                        </div>
                     </div>
                 </div>
                 <div class="center-ctrl">
                     <button class="btn btn-green" onclick="submitRoundRef()">라운드 결과 확정</button>
-                    <button class="btn btn-gray" onclick="undoRoundRef()">↩️ 해당 라운드 결과 취소</button>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn" style="background:rgba(255,255,255,0.8); color:var(--red); font-size:0.8rem; border:1px solid var(--red);" onclick="declareWalkover('red')">RED 기권 승리</button>
-                        <button class="btn" style="background:rgba(255,255,255,0.8); color:var(--blue); font-size:0.8rem; border:1px solid var(--blue);" onclick="declareWalkover('blue')">BLUE 기권 승리</button>
+                    <button class="btn btn-gray" onclick="undoRoundRef()" style="margin-top:8px;">↩️ 해당 라운드 결과 취소</button>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <button class="btn" style="background:#fff; color:var(--red); border:1.5px solid var(--red); font-size:0.8rem; padding:10px 5px;" onclick="declareWalkover('red')">RED팀 기권</button>
+                            <button class="foul-btn yellow" id="foul-r-y" onclick="toggleFoul('red', 'y')">Y</button>
+                            <button class="foul-btn red-card" id="foul-r-r" onclick="toggleFoul('red', 'r')">R</button>
+                        </div>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <button class="btn" style="background:#fff; color:var(--blue); border:1.5px solid var(--blue); font-size:0.8rem; padding:10px 5px;" onclick="declareWalkover('blue')">BLUE팀 기권</button>
+                            <button class="foul-btn yellow" id="foul-b-y" onclick="toggleFoul('blue', 'y')">Y</button>
+                            <button class="foul-btn red-card" id="foul-b-r" onclick="toggleFoul('blue', 'r')">R</button>
+                        </div>
                     </div>
                 </div>
                 <div style="margin-top:20px; background:white; padding:10px; border-radius:10px; border:1px solid #ddd;">
@@ -173,7 +171,7 @@
     db.ref('kca_info/name').on('value', (snap) => { tournamentName = snap.val() || "데이터 실시간 통합"; updateTitleUIs(); });
 
     function updateTournamentName() { const n = document.getElementById('hq-tournament-name').value; if(n.trim()) db.ref('kca_info/name').set(n); }
-    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v7.2`; }
+    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v7.3`; }
 
     // --- [심판석 로직] ---
     function tStart(team) { if (isTimerRunning) { tStop(); return; } tStop(); isTimerRunning = true; let s = 15; const d = document.getElementById('timer-' + team); d.innerText = s; tRef = setInterval(() => { s--; d.innerText = s; if(s<=5) d.classList.add('warning'); if(s<=0) { clearInterval(tRef); isTimerRunning = false; alert("시간초과!"); tStop(); } }, 1000); }
@@ -185,7 +183,6 @@
         const btn = document.getElementById('foul-' + key);
         if (fouls[key]) btn.classList.add('active'); else btn.classList.remove('active');
     }
-
     function submitRoundRef() {
         let rs = refI.r3*3+refI.r1, bs = refI.b3*3+refI.b1, diff = rs-bs, rg = diff>0?diff:0, bg = diff<0?Math.abs(diff):0;
         refS.red += rg; refS.blue += bg; rLog.push({ round: rLog.length + 1, r: rg, b: bg, r_orig: rs, b_orig: bs });
@@ -197,11 +194,12 @@
     
     function declareWalkover(side) {
         if (!activeM || !activeM.redP || !activeM.blueP) return alert("진영 배정을 먼저 완료하세요.");
-        const winnerName = side === 'red' ? activeM.blueP : activeM.redP;
-        if (confirm(winnerName + " 선수의 기권 승리로 처리할까요?")) {
+        const surrenderedP = side === 'red' ? activeM.redP : activeM.blueP;
+        const winnerP = side === 'red' ? activeM.blueP : activeM.redP;
+        if (confirm(surrenderedP + " 선수의 기권으로 " + winnerP + " 선수의 승리로 처리할까요?")) {
             refS = { red: 0, blue: 0 };
-            rLog = [{ round: 'W.O', r: 0, b: 0, r_orig: '기권', b_orig: '승리' }];
-            finishMatchAuto(winnerName);
+            rLog = [{ round: 'W.O', r: 0, b: 0, r_orig: (side==='red'?'기권':'승리'), b_orig: (side==='blue'?'기권':'승리') }];
+            finishMatchAuto(winnerP);
         }
     }
 
@@ -216,7 +214,6 @@
     }
     function syncSides(s) { const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); if(s==='red') s2.value=(s1.value===activeM.p1?activeM.p2:activeM.p1); else s1.value=(s2.value===activeM.p1?activeM.p2:activeM.p1); if(s1.value && s2.value){ activeM.redP=s1.value; activeM.blueP=s2.value; document.getElementById('ref-side-zone').style.display='none'; document.getElementById('ref-engine-ui').style.display='block'; document.getElementById('red-name-label').innerText=s1.value; document.getElementById('blue-name-label').innerText=s2.value; } }
     function updateRefUI() { document.getElementById('ref-red-total').innerText = refS.red; document.getElementById('ref-blue-total').innerText = refS.blue; }
-    
     function finishMatchAuto(fw = null) {
         try {
             const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx];
@@ -225,10 +222,9 @@
             m.court = document.getElementById('ref-court-num').value || "-"; m.fouls = {...fouls}; m.walkover = fw ? true : false;
             pushNext(activeM.rIdx, activeM.mIdx, m.winner);
             db.ref('kca_tournament').set(categories).then(() => { alert("전송 완료 !"); showView('bracket'); });
-        } catch (e) { alert("오류: " + e.message); }
-    }
+        } catch (e) { alert("오류: " + e.message); } }
 
-    // --- [대진표 설계: 고정] ---
+    // --- [대진표 설계 고정] ---
     function makeBracketsAndCloud() {
         if (!categories.length) return alert("명단을 로드하세요.");
         const mode = document.getElementById('assign-mode').value;
@@ -257,10 +253,10 @@
         db.ref('kca_tournament').set(categories).then(() => alert("대진표 생성 완료"));
     }
     function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0) { const targetM = cat.rounds[0][m].targetM; if(!nextR[targetM].p1) nextR[targetM].p1 = w; else nextR[targetM].p2 = w; } else { let nm = Math.floor(m/2); if(!nextR[nm].p1) nextR[nm].p1=w; else nextR[nm].p2=w; } }
-    function resetMAdmin(r, m) { if(confirm("결과를 리셋할까요? 상위 기록도 자동 삭제됩니다.")){ const cat = categories[currentCatIdx], winnerName = cat.rounds[r][m].winner; cat.rounds[r][m].winner = null; cat.rounds[r][m].score = ""; cat.rounds[r][m].history = []; if (winnerName) clearPlayerRoute(r + 1, winnerName); db.ref('kca_tournament').set(categories); } }
+    function resetMAdmin(r, m) { if(confirm("경기 결과를 리셋할까요? 진출 경로가 자동 삭제됩니다.")){ const cat = categories[currentCatIdx], winnerName = cat.rounds[r][m].winner; cat.rounds[r][m].winner = null; cat.rounds[r][m].score = ""; cat.rounds[r][m].history = []; if (winnerName) clearPlayerRoute(r + 1, winnerName); db.ref('kca_tournament').set(categories); } }
     function clearPlayerRoute(startRound, name) { const cat = categories[currentCatIdx]; if (!cat || startRound >= cat.rounds.length) return; for (let r = startRound; r < cat.rounds.length; r++) { cat.rounds[r].forEach(match => { if (match.p1 === name || match.p2 === name) { if (match.p1 === name) match.p1 = ""; if (match.p2 === name) match.p2 = ""; if (match.winner === name) { match.winner = null; match.score = ""; match.history = []; } } }); } }
 
-    // --- [보안 및 UI] ---
+    // --- [보안 및 UI 보조] ---
     function tryAccess(v, m = null) { pendingV = v; pendingMatch = m; document.getElementById('lock-title').innerText = (v === 'hq' ? "운영본부 코드를 입력하세요" : "심판 코드를 입력하세요"); showView('lock'); }
     function verifyCode() { const input = document.getElementById('code-val').value, target = (pendingV === 'hq' ? hqAuth : refAuth); if(input === target) { showView(pendingV); if(pendingMatch) { currentCatIdx = pendingMatch.cat; setupRefereeView(pendingMatch.r, pendingMatch.m); } document.getElementById('code-val').value = ""; } else alert("인증 실패"); }
     function showView(v) { document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active')); document.getElementById('view-' + v).classList.add('active'); document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active')); if(document.getElementById('nav-'+v)) document.getElementById('nav-'+v).classList.add('active'); window.scrollTo(0,0); }
