@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v8.2</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v8.3</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -36,13 +36,14 @@
         .prefix-r { color: var(--red); font-weight: 900; margin-right: 4px; }
         .prefix-b { color: var(--blue); font-weight: 900; margin-right: 4px; }
 
-        /* 심판석 스코어보드 */
+        /* 심판석 스코어보드 디자인 */
         .scoreboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .team-section { border-radius: 15px; padding: 15px 8px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .team-section.red { background: linear-gradient(to bottom, #ff5e57, var(--red)); }
         .team-section.blue { background: linear-gradient(to bottom, #54a0ff, var(--blue)); }
         .timer-top { font-size: 1.8rem; font-weight: 900; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 2px 10px; display: inline-block; margin-bottom: 8px; font-family: monospace; min-width: 60px; }
         .timer-top.warning { color: #ff0000; animation: blink 0.5s infinite; background: white; }
+        @keyframes blink { 50% { opacity: 0.3; } }
         .score-display { font-size: 5rem; font-weight: 1000; line-height: 1; margin: 5px 0; }
         .sub-score-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 8px; margin-top: 10px; }
         .sub-score-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; }
@@ -54,10 +55,10 @@
         .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .rank-table th, .rank-table td { padding: 8px 5px; border: 1px solid #eee; text-align: center; }
         
-        /* 푸터 디자인 추가 */
-        .main-footer { background: var(--dark); color: #888; padding: 30px 15px; text-align: center; font-size: 0.75rem; margin-top: 40px; border-top: 1px solid #333; }
-        .footer-logo { height: 20px; filter: grayscale(1); opacity: 0.5; margin-bottom: 10px; }
-        .dev-credit { color: #aaa; margin-top: 5px; font-weight: bold; }
+        /* v8.3 푸터 디자인 */
+        .main-footer { background: var(--dark); color: #888; padding: 35px 15px; text-align: center; font-size: 0.75rem; border-top: 1px solid #333; }
+        .footer-logo { height: 22px; filter: grayscale(1); opacity: 0.6; margin-bottom: 12px; }
+        .dev-credit { color: #ccc; margin-top: 8px; font-weight: 600; letter-spacing: 0.5px; }
 
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; }
         .modal { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
@@ -163,7 +164,7 @@
 <footer class="main-footer">
     <img src="https://www.cornhole.kr/html/img/logo.png" alt="KCA" class="footer-logo"><br>
     © 2024 (사)사단법인 한국콘홀협회 (KCA). All Rights Reserved.<br>
-    <div class="dev-credit">Powered by 실시간 데이터 통합 시스템 v8.2</div>
+    <div class="dev-credit">Developed by 최윤정 | 실시간 데이터 통합 시스템 v8.3</div>
 </footer>
 
 <script>
@@ -176,9 +177,9 @@
     db.ref('kca_info/name').on('value', (s) => { tournamentName = s.val() || "데이터 실시간 통합"; updateTitleUIs(); });
 
     function updateTournamentName() { const n = document.getElementById('hq-tournament-name').value; if(n.trim()) db.ref('kca_info/name').set(n); }
-    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v8.2`; }
+    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v8.3`; }
 
-    // --- [심판석 로직: 고정] ---
+    // --- [심판석 로직: 철저 고정] ---
     function tStart(team) { if (isTimerRunning) { tStop(); return; } isTimerRunning = true; let s = 15; const d = document.getElementById('timer-' + team); d.innerText = s; tRef = setInterval(() => { s--; d.innerText = s; if(s <= 5) d.classList.add('warning'); if(s <= 0) { clearInterval(tRef); isTimerRunning = false; alert("시간초과!"); tStop(); } }, 1000); }
     function tStop() { if (tRef) clearInterval(tRef); isTimerRunning = false; document.querySelectorAll('.timer-top').forEach(el => { el.innerText = "15"; el.classList.remove('warning'); }); }
     function adj(t, p, d) { const cur = refI[t+'3'] + refI[t+'1']; if(d > 0 && cur >= 4) return alert("최대 4개"); refI[t+p] = Math.max(0, refI[t+p]+d); document.getElementById(t+p+'-q').innerText = refI[t+p]; }
@@ -218,7 +219,7 @@
             db.ref('kca_tournament').set(categories).then(() => { alert("전송 완료 !"); showView('bracket'); });
         } catch (e) { alert("오류: " + e.message); } }
 
-    // --- [대진표 설계 고정] ---
+    // --- [대진표 및 순위 로직: 철저 고정] ---
     function makeBracketsAndCloud() {
         if (!categories.length) return alert("명단을 로드하세요.");
         const mode = document.getElementById('assign-mode').value;
@@ -247,10 +248,9 @@
         db.ref('kca_tournament').set(categories).then(() => alert("대진표 생성 완료"));
     }
     function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0) { const targetM = cat.rounds[0][m].targetM; if(!nextR[targetM].p1) nextR[targetM].p1 = w; else nextR[targetM].p2 = w; } else { let nm = Math.floor(m/2); if(!nextR[nm].p1) nextR[nm].p1=w; else nextR[nm].p2=w; } }
-    function resetMAdmin(r, m) { if(confirm("결과를 리셋할까요? 진출 경로가 자동 삭제됩니다.")){ const cat = categories[currentCatIdx], winnerName = cat.rounds[r][m].winner; cat.rounds[r][m].winner = null; cat.rounds[r][m].score = ""; cat.rounds[r][m].history = []; if (winnerName) clearPlayerRoute(r + 1, winnerName); db.ref('kca_tournament').set(categories); } }
+    function resetMAdmin(r, m) { if(confirm("결과를 리셋할까요? 상위 기록도 자동 삭제됩니다.")){ const cat = categories[currentCatIdx], winnerName = cat.rounds[r][m].winner; cat.rounds[r][m].winner = null; cat.rounds[r][m].score = ""; cat.rounds[r][m].history = []; if (winnerName) clearPlayerRoute(r + 1, winnerName); db.ref('kca_tournament').set(categories); } }
     function clearPlayerRoute(startRound, name) { const cat = categories[currentCatIdx]; if (!cat || startRound >= cat.rounds.length) return; for (let r = startRound; r < cat.rounds.length; r++) { cat.rounds[r].forEach(match => { if (match.p1 === name || match.p2 === name) { if (match.p1 === name) match.p1 = ""; if (match.p2 === name) match.p2 = ""; if (match.winner === name) { match.winner = null; match.score = ""; match.history = []; } } }); } }
 
-    // --- [순위 산정: v8.0 규칙 적용] ---
     function calcStats() {
         categories.forEach(cat => {
             cat.stats = {}; cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"진행 중"});
@@ -268,7 +268,7 @@
         });
     }
 
-    // --- [UI 렌더링] ---
+    // --- [디자인 렌더링: R/B 접두사 로직] ---
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     function renderBracketUI(id, isAdmin) {
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat || !cat.rounds) return;
@@ -294,6 +294,8 @@
         box.innerHTML = `<div>${p1_pre}${m.p1||'.'}</div><div>${p2_pre}${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;color:gray;">${m.score||'대기'}</div>`;
         if(isAdmin && m.winner) box.innerHTML += `<div style="color:red;text-align:right;font-size:0.6rem;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋</div>`; return box;
     }
+
+    // --- [보조 유틸리티] ---
     function renderRankUI(id) {
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat) return;
         const sorted = Object.keys(cat.stats).map(n => ({name:n, ...cat.stats[n]})).sort((a,b) => b.win - a.win || b.diff - a.diff);
