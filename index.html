@@ -313,7 +313,7 @@
     function renderRankUI(id) {
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat) return;
         const sorted = Object.keys(cat.stats).map(n => ({name:n, ...cat.stats[n]})).sort((a,b) => b.win - a.win || b.diff - a.diff);
-        sorted.forEach((p, i) => { const r = root.insertRow(); r.innerHTML = `<td>${i+1}</td><td>${p.name}</td><td>${p.status}</td><td>${p.diff > 0 ? '+'+p.diff : p.diff}</td><td>${p.win}W ${p.loss}L</td>`; });
+        sorted.forEach((p, i) => { const r = root.insertRow(); r.innerHTML = `<td>${i+1}</td><td>${p.name}</td><td>${p.status}</td><td>${p.diff > 0 ? '+'+p.diff : p.diff}</td><td>${p.win}승 ${p.loss}패</td>`; });
     }
     function tryAccess(v, m = null) { pendingV = v; pendingMatch = m; document.getElementById('lock-title').innerText = (v === 'hq' ? "운영본부 코드를 입력하세요" : "심판 코드를 입력하세요"); showView('lock'); }
     function verifyCode() { const input = document.getElementById('code-val').value, target = (pendingV === 'hq' ? hqAuth : refAuth); if(input === target) { showView(pendingV); if(pendingMatch) { currentCatIdx = pendingMatch.cat; setupRefereeView(pendingMatch.r, pendingMatch.m); } document.getElementById('code-val').value = ""; } else alert("인증 실패"); }
@@ -339,4 +339,5 @@
 <div id="detail-modal" class="overlay" onclick="closeDetail()"><div class="modal" onclick="event.stopPropagation()"><h3>📋 경기 상세 결과</h3><div id="detail-content" style="text-align:left; font-size:0.85rem; line-height:1.6;"></div><button class="btn btn-dark" style="margin-top:20px; background:var(--dark); color:white;" onclick="closeDetail()">닫기</button></div></div>
 </body>
 </html>
+
 
