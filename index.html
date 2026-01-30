@@ -3,39 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v8.1</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v8.2</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --red: #d63031; --blue: #0984e3; --dark: #000000; --green: #00b894; --gold: #f1c40f; --gray: #636e72; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Pretendard', -apple-system, sans-serif; margin: 0; background: #f1f2f6; color: #2d3436; line-height: 1.5; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; margin: 0; background: #f1f2f6; color: #2d3436; line-height: 1.5; display: flex; flex-direction: column; min-height: 100vh; }
+        
         .nav-bar { background: var(--dark); padding: 10px 15px; display: flex; flex-direction: column; align-items: center; color: white; position: sticky; top:0; z-index:1000; }
         .nav-logo { font-size: 1.1rem; font-weight: 900; color: white; text-decoration: none; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
         .nav-logo img { height: 28px; }
         .nav-menu { display: flex; gap: 4px; width: 100%; justify-content: center; }
         .nav-link { color: #aaa; text-decoration: none; cursor: pointer; font-weight: bold; padding: 8px 10px; border-radius: 8px; font-size: 0.8rem; flex: 1; text-align: center; }
         .nav-link.active { color: white; background: rgba(255,255,255,0.15); }
-        @media (min-width: 768px) { .nav-bar { flex-direction: row; justify-content: space-between; padding: 12px 20px; } .nav-logo { margin-bottom: 0; } .nav-menu { width: auto; } }
-        .container { width: 100%; max-width: 1250px; margin: 15px auto; padding: 0 10px; }
+        
+        .container { width: 100%; max-width: 1250px; margin: 15px auto; padding: 0 10px; flex: 1; }
         .view-section { display: none; animation: fadeIn 0.4s; }
         .view-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
         .kca-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .category-tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; }
         .cat-tab { padding: 6px 12px; background: #e0e0e0; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-weight: bold; white-space: nowrap; }
         .cat-tab.active { background: var(--dark); color: white; }
+        
         .bracket-container { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 20px; }
         .round-column { min-width: 210px; display: flex; flex-direction: column; gap: 12px; }
         .stage-label { background: var(--dark); color: white; padding: 5px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 0.8rem; }
-        
-        /* 대진표 내 R/B 표기용 스타일 */
         .match-box { border: 2px solid #eee; border-radius: 10px; padding: 10px; background: white; cursor: pointer; min-height: 90px; display: flex; flex-direction: column; justify-content: center; }
         .prefix-r { color: var(--red); font-weight: 900; margin-right: 4px; }
         .prefix-b { color: var(--blue); font-weight: 900; margin-right: 4px; }
 
-        /* 심판석 스코어보드 디자인 */
+        /* 심판석 스코어보드 */
         .scoreboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .team-section { border-radius: 15px; padding: 15px 8px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .team-section.red { background: linear-gradient(to bottom, #ff5e57, var(--red)); }
@@ -50,8 +51,14 @@
         .btn { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; width: 100%; transition: 0.2s; }
         .btn-green { background: var(--green); color: white; border-bottom: 4px solid #008a6f; }
         .btn-gray { background: #95a5a6; color: white; border-bottom: 4px solid #7f8c8d; }
-        .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+        .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .rank-table th, .rank-table td { padding: 8px 5px; border: 1px solid #eee; text-align: center; }
+        
+        /* 푸터 디자인 추가 */
+        .main-footer { background: var(--dark); color: #888; padding: 30px 15px; text-align: center; font-size: 0.75rem; margin-top: 40px; border-top: 1px solid #333; }
+        .footer-logo { height: 20px; filter: grayscale(1); opacity: 0.5; margin-bottom: 10px; }
+        .dev-credit { color: #aaa; margin-top: 5px; font-weight: bold; }
+
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; }
         .modal { background: white; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
         .code-input { padding: 15px; font-size: 1.5rem; border: 2px solid var(--dark); border-radius: 10px; width: 100%; max-width: 350px; text-align: center; margin-bottom: 20px; }
@@ -64,8 +71,8 @@
     <div class="nav-menu">
         <div id="nav-bracket" class="nav-link active" onclick="showView('bracket')">대진표</div>
         <div id="nav-rank" class="nav-link" onclick="showView('rank')">대회 순위</div>
-        <div id="nav-referee" class="nav-link" onclick="tryAccess('referee')">🔒 심판석</div>
-        <div id="nav-hq" class="nav-link" onclick="tryAccess('hq')">🔒 운영본부</div>
+        <div id="nav-referee" class="nav-link restricted" onclick="tryAccess('referee')">🔒 심판석</div>
+        <div id="nav-hq" class="nav-link restricted" onclick="tryAccess('hq')">🔒 운영본부</div>
     </div>
 </nav>
 
@@ -153,6 +160,12 @@
     </section>
 </div>
 
+<footer class="main-footer">
+    <img src="https://www.cornhole.kr/html/img/logo.png" alt="KCA" class="footer-logo"><br>
+    © 2024 (사)사단법인 한국콘홀협회 (KCA). All Rights Reserved.<br>
+    <div class="dev-credit">Powered by 실시간 데이터 통합 시스템 v8.2</div>
+</footer>
+
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDsc6BCyg6dBeym-Ll_sXctxgEA6EpTBlg", authDomain: "korea-cornhole.firebaseapp.com", projectId: "korea-cornhole", databaseURL: "https://korea-cornhole-default-rtdb.firebaseio.com" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -163,7 +176,7 @@
     db.ref('kca_info/name').on('value', (s) => { tournamentName = s.val() || "데이터 실시간 통합"; updateTitleUIs(); });
 
     function updateTournamentName() { const n = document.getElementById('hq-tournament-name').value; if(n.trim()) db.ref('kca_info/name').set(n); }
-    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v8.1`; }
+    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; document.getElementById('hq-tournament-name').value = (tournamentName === "데이터 실시간 통합" ? "" : tournamentName); document.getElementById('bracket-view-title').innerText = `🏆 ${tournamentName} 대진표`; document.getElementById('page-title').innerText = `${tournamentName} v8.2`; }
 
     // --- [심판석 로직: 고정] ---
     function tStart(team) { if (isTimerRunning) { tStop(); return; } isTimerRunning = true; let s = 15; const d = document.getElementById('timer-' + team); d.innerText = s; tRef = setInterval(() => { s--; d.innerText = s; if(s <= 5) d.classList.add('warning'); if(s <= 0) { clearInterval(tRef); isTimerRunning = false; alert("시간초과!"); tStop(); } }, 1000); }
@@ -255,7 +268,7 @@
         });
     }
 
-    // --- [v8.1 UI 업데이트: 대진표 R/B 접두사 로직] ---
+    // --- [UI 렌더링] ---
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     function renderBracketUI(id, isAdmin) {
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat || !cat.rounds) return;
@@ -273,18 +286,14 @@
     function createMatchBox(m, r, mi, isAdmin) {
         const box = document.createElement('div'); box.className = "match-box";
         box.onclick = () => { if(m.winner) showDetail(r, mi); else if(m.p1 && m.p2) tryAccess('referee', {cat:currentCatIdx, r, m:mi}); };
-        
         let p1_pre = "", p2_pre = "";
-        if (m.redP) { // 진영이 배정된 경우에만 접두사 표시
+        if (m.redP) {
             if (m.p1 === m.redP) p1_pre = '<span class="prefix-r">R</span>'; else if (m.p1 === m.blueP) p1_pre = '<span class="prefix-b">B</span>';
             if (m.p2 === m.redP) p2_pre = '<span class="prefix-r">R</span>'; else if (m.p2 === m.blueP) p2_pre = '<span class="prefix-b">B</span>';
         }
-
         box.innerHTML = `<div>${p1_pre}${m.p1||'.'}</div><div>${p2_pre}${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;color:gray;">${m.score||'대기'}</div>`;
         if(isAdmin && m.winner) box.innerHTML += `<div style="color:red;text-align:right;font-size:0.6rem;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋</div>`; return box;
     }
-
-    // --- [기존 보조 함수들] ---
     function renderRankUI(id) {
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat) return;
         const sorted = Object.keys(cat.stats).map(n => ({name:n, ...cat.stats[n]})).sort((a,b) => b.win - a.win || b.diff - a.diff);
