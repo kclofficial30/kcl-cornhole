@@ -1,5 +1,5 @@
 {
-  "name": "K-Cornhole 실시간 통합 시스템",
+  "name": "KCL 실시간 통합 시스템",
   "short_name": "KCL 통합시스템",
   "start_url": "./index.html",
   "display": "standalone",
@@ -11,4 +11,5 @@
   ]
 
 }
+
 
