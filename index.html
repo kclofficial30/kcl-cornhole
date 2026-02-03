@@ -299,8 +299,8 @@
     function verifyCode() { const val=document.getElementById('code-val').value; if(val===(pendingV==='hq'?hqAuth:refAuth)){ showView(pendingV); if(pendingMatch) { currentCatIdx = pendingMatch.cat; setupRefereeView(pendingMatch.r, pendingMatch.m); } } else alert("실패"); }
     function renderTabs() { ['cat-tabs-public', 'cat-tabs-rank', 'cat-tabs-admin'].forEach(id => { const div = document.getElementById(id); if(!div) return; div.innerHTML = ""; categories.forEach((cat, i) => { const t = document.createElement('div'); t.className = `cat-tab ${i === currentCatIdx ? 'active' : ''}`; t.innerText = cat.name; t.onclick = () => { currentCatIdx = i; renderTabs(); refreshUIs(); }; div.appendChild(t); }); }); }
     function downloadTournamentData() { if (!categories.length) return alert("데이터 없음"); const wb = XLSX.utils.book_new(); const full = []; categories.forEach(cat => { if(!cat.rounds) return; cat.rounds.forEach(round => round.forEach(m => { if(m.winner) full.push({ "종목": cat.name, "단계": m.stage, "RED": m.redP, "BLUE": m.blueP, "스코어": m.score }); })); }); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(full), "결과"); XLSX.writeFile(wb, "Tournament_Data.xlsx"); }
-    function resetTournamentAll() { if (confirm("리셋?")) { db.ref('kca_tournament').set(null); location.reload(); } }
-    function resetMAdmin(r, m) { if(confirm("리셋?")) { categories[currentCatIdx].rounds[r][m].winner = null; categories[currentCatIdx].rounds[r][m].score = ""; db.ref('kca_tournament').set(categories); } }
+    function resetTournamentAll() { if (confirm("해당 경기의 결과를 리셋하시겠습니까?")) { db.ref('kca_tournament').set(null); location.reload(); } }
+    function resetMAdmin(r, m) { if(confirm("해당 경기의 결과를 리셋하시겠습니까?")) { categories[currentCatIdx].rounds[r][m].winner = null; categories[currentCatIdx].rounds[r][m].score = ""; db.ref('kca_tournament').set(categories); } }
     function undoRoundRef() { if (!rLog.length) return alert("기록 없음"); const last = rLog.pop(); refS.red -= last.r; refS.blue -= last.b; updateRefUI(); document.getElementById('ref-hist-body').deleteRow(document.getElementById('ref-hist-body').rows.length - 1); }
     function updateRefUI() { document.getElementById('ref-red-total').innerText = refS.red; document.getElementById('ref-blue-total').innerText = refS.blue; }
     function showDetail(r, m) { const match = categories[currentCatIdx].rounds[r][m]; let hist = (match.history || []).map(h => `${h.round}R: ${h.r}:${h.b}`).join('<br>'); document.getElementById('detail-content').innerHTML = `<b>${match.stage}</b><br>${match.redP} vs ${match.blueP}<hr>${hist}`; document.getElementById('detail-modal').style.display = 'flex'; }
@@ -311,3 +311,4 @@
 </script>
 </body>
 </html>
+
