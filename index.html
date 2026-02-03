@@ -12,6 +12,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Pretendard', -apple-system, sans-serif; margin: 0; background: #f1f2f6; color: #2d3436; line-height: 1.5; display: flex; flex-direction: column; min-height: 100vh; }
         
+        /* 네비게이션 반응형 수정 */
         .nav-bar { background: var(--dark); padding: 10px 15px; display: flex; flex-direction: column; align-items: center; color: white; position: sticky; top:0; z-index:1000; }
         .nav-logo { font-size: 1rem; font-weight: 900; color: white; text-decoration: none; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
         .nav-logo img { height: 24px; }
@@ -133,13 +134,19 @@
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-green" style="margin-bottom:8px;" onclick="submitRoundRef()">라운드 결과 확정</button>
-                <button class="btn btn-gray" style="margin-bottom:12px; font-size:0.85rem; padding:8px;" onclick="undoRoundRef()">↩️ 라운드 결과 취소</button>
+                <div class="center-ctrl">
+                    <button class="btn btn-green" style="margin-bottom:8px;" onclick="submitRoundRef()">라운드 결과 확정</button>
+                    <button class="btn btn-gray" style="margin-bottom:12px; font-size:0.85rem; padding:8px;" onclick="undoRoundRef()">↩️ 라운드 결과 취소</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn" style="background:#fff; color:var(--red); border:1.5px solid var(--red); font-size:0.8rem; padding:8px;" onclick="declareWalkover('red')">RED팀 기권</button>
+                        <button class="btn" style="background:#fff; color:var(--blue); border:1.5px solid var(--blue); font-size:0.8rem; padding:8px;" onclick="declareWalkover('blue')">BLUE팀 기권</button>
+                    </div>
+                </div>
                 <div style="margin-top:15px; background:white; padding:8px; border-radius:10px; border:1px solid #ddd;">
                     <p style="font-size:0.75rem; font-weight:bold; margin-bottom:5px;">📊 매치 기록 (R)</p>
-                    <table class="rank-table"><thead><tr><th>R</th><th>RED</th><th>BLUE</th><th>상세(H/B)</th></tr></thead><tbody id="ref-hist-body"></tbody></table>
+                    <table class="rank-table"><tbody id="ref-hist-body"></tbody></table>
                 </div>
-                <button class="btn btn-dark" id="finish-btn" style="margin-top:15px; height:60px; font-size:1.1rem;" onclick="finishMatchAuto()">🏆 최종 종료 및 전송</button>
+                <button class="btn" id="finish-btn" style="margin-top:15px; background:var(--dark); color:white; height:60px; font-size:1.1rem;" onclick="finishMatchAuto()">🏆 최종 종료 및 전송</button>
             </div>
         </div>
     </section>
@@ -158,7 +165,7 @@
                 </select>
                 <button class="btn" style="background:var(--red); color:white; height:45px;" onclick="makeBracketsAndCloud()">대진표 생성 및 저장</button>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-bottom:15px;"><button class="btn btn-dark" style="background:#2ecc71; height:45px;" onclick="downloadTournamentData()">📥 상세 데이터 다운로드</button><button class="btn btn-dark" style="height:45px;" onclick="changeAdminCode()">🔐 코드 변경</button><button class="btn" style="background:var(--red); color:white; height:45px;" onclick="resetTournamentAll()">🗑️ 전체 초기화</button></div>
+            <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-bottom:15px;"><button class="btn btn-dark" style="background:#2ecc71; height:45px;" onclick="downloadTournamentData()">📥 데이터 다운로드</button><button class="btn btn-dark" style="height:45px;" onclick="changeAdminCode()">🔐 코드 변경</button><button class="btn" style="background:var(--red); color:white; height:45px;" onclick="resetTournamentAll()">🗑️ 전체 초기화</button></div>
             <div id="cat-tabs-admin" class="category-tabs"></div><div id="bracket-admin" class="bracket-container"></div>
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;"><table class="rank-table"><thead><tr><th>순위</th><th>선수명</th><th>상태</th><th>득실차</th><th>승/패</th></tr></thead><tbody id="rank-body-admin"></tbody></table>
         </div>
@@ -175,7 +182,7 @@
     <div class="dev-credit">Developed by 최윤정 | 실시간 데이터 통합 시스템 v8.5.final</div>
 </footer>
 
-<div id="detail-modal" class="overlay" onclick="closeDetail()"><div class="modal" onclick="event.stopPropagation()"><h3>📋 상세 기록</h3><div id="detail-content" style="text-align:left; font-size:0.85rem; line-height:1.6;"></div><button class="btn btn-dark" style="margin-top:20px;" onclick="closeDetail()">닫기</button></div></div>
+<div id="detail-modal" class="overlay" onclick="closeDetail()"><div class="modal" onclick="event.stopPropagation()"><h3>📋 경기 상세 결과</h3><div id="detail-content" style="text-align:left; font-size:0.85rem; line-height:1.6;"></div><button class="btn btn-dark" style="margin-top:20px;" onclick="closeDetail()">닫기</button></div></div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDsc6BCyg6dBeym-Ll_sXctxgEA6EpTBlg", authDomain: "korea-cornhole.firebaseapp.com", projectId: "korea-cornhole", databaseURL: "https://korea-cornhole-default-rtdb.firebaseio.com" };
@@ -189,14 +196,20 @@
     function updateTournamentName() { const n = document.getElementById('hq-tournament-name').value; if(n.trim()) db.ref('kca_info/name').set(n); }
     function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; }
 
+    // --- [뷰 전환 로직 핵심 수정] ---
     function showView(v) {
         document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-        document.getElementById('view-' + v).classList.add('active');
+        const targetView = document.getElementById('view-' + v);
+        if(targetView) targetView.classList.add('active');
+        
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        if(document.getElementById('nav-'+v)) document.getElementById('nav-'+v).classList.add('active');
+        const targetNav = document.getElementById('nav-' + v);
+        if(targetNav) targetNav.classList.add('active');
+        
         window.scrollTo(0,0);
     }
 
+    // --- [심판석 로직] ---
     function tStart(team) { if (isTimerRunning) { tStop(); return; } isTimerRunning = true; let s = 15; const d = document.getElementById('timer-' + team); d.innerText = s; tRef = setInterval(() => { s--; d.innerText = s; if(s <= 5) d.classList.add('warning'); if(s <= 0) { clearInterval(tRef); isTimerRunning = false; alert("시간초과!"); tStop(); } }, 1000); }
     function tStop() { if (tRef) clearInterval(tRef); isTimerRunning = false; document.querySelectorAll('.timer-top').forEach(el => { el.innerText = "15"; el.classList.remove('warning'); }); }
     function adj(t, p, d) { const cur = refI[t+'3'] + refI[t+'1']; if(d > 0 && cur >= 4) return alert("최대 4개"); refI[t+p] = Math.max(0, refI[t+p]+d); document.getElementById(t+p+'-q').innerText = refI[t+p]; }
@@ -204,25 +217,29 @@
     function submitRoundRef() {
         const rs = refI.r3*3 + refI.r1, bs = refI.b3*3 + refI.b1, diff = rs-bs, rg = diff>0?diff:0, bg = diff<0?Math.abs(diff):0;
         refS.red += rg; refS.blue += bg;
-        rLog.push({ round: rLog.length+1, r: rg, b: bg, r3: refI.r3, r1: refI.r1, b3: refI.b3, b1: refI.b1, r_orig: rs, b_orig: bs });
+        rLog.push({ round: rLog.length+1, r: rg, b: bg, r_orig: rs, b_orig: bs });
         updateRefUI();
         const row = document.getElementById('ref-hist-body').insertRow(-1);
-        row.innerHTML = `<td>${rLog.length}R</td><td>${rg}</td><td>${bg}</td><td style="font-size:0.6rem;">R(${refI.r3}/${refI.r1}) B(${refI.b3}/${refI.b1})</td>`;
-        if(refS.red >= 21 || refS.blue >= 21) alert("🎉 경기 종료 점수(21점) 도달! 최종 전송 버튼을 눌러주세요.");
+        row.innerHTML = `<td>${rLog.length}R</td><td>${rg}</td><td>${bg}</td>`;
+        if(refS.red >= 21 || refS.blue >= 21) alert("🎉 점수가 21점 이상 도달하여 경기가 종료되었습니다! 전송 버튼을 눌러주세요.");
         refI = {r3:0, r1:0, b3:0, b1:0}; ["r3-q","r1-q","b3-q","b1-q"].forEach(id=>document.getElementById(id).innerText=0); tStop();
     }
 
-    function downloadTournamentData() {
-        if (!categories.length) return alert("데이터 없음");
-        const wb = XLSX.utils.book_new(); const matrixRows = []; let maxR = 0;
-        categories.forEach(cat => { if(cat.rounds) cat.rounds.forEach(rd => rd.forEach(m => { if(m.history && m.history.length > maxR) maxR = m.history.length; }))); });
-        categories.forEach(cat => { if(!cat.rounds) return; cat.rounds.forEach(round => { round.forEach(m => { if (m.winner) {
-            let rowObj = { "종목": cat.name, "단계": m.stage, "RED": m.redP, "BLUE": m.blueP, "결과": m.score };
-            for(let i=1; i<=maxR; i++){ const rh = m.history ? m.history.find(h => h.round === i) : null; rowObj[i+"R"] = rh ? `${rh.r_orig}:${rh.b_orig}` : "-"; }
-            matrixRows.push(rowObj);
-        } }); }); });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(matrixRows), "경기결과");
-        XLSX.writeFile(wb, `${tournamentName}_라운드상세.xlsx`);
+    function calcStats() {
+        categories.forEach(cat => {
+            cat.stats = {}; cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"진진행 중"});
+            if(cat.rounds) {
+                cat.rounds.forEach((round) => { round.forEach(m => { if(m.winner && m.score.includes(':')) {
+                    const rawS = m.score.split(':').map(Number);
+                    const s0 = Math.min(rawS[0], 21); const s1 = Math.min(rawS[1], 21);
+                    const winStatS = (m.winner === m.redP ? s0 : s1); const lossStatS = (m.winner === m.redP ? s1 : s0);
+                    const diff = winStatS - lossStatS;
+                    if(cat.stats[m.winner]) { cat.stats[m.winner].win++; cat.stats[m.winner].diff += diff; if(m.stage==="결승전") cat.stats[m.winner].status="🏆 우승"; }
+                    const lossN = (m.winner === m.redP ? m.blueP : m.redP);
+                    if(cat.stats[lossN]) { cat.stats[lossN].loss++; cat.stats[lossN].diff -= diff; cat.stats[lossN].status=(m.stage==="결승전"?"준우승":m.stage+" 탈락"); }
+                } }); });
+            }
+        });
     }
 
     function makeBracketsAndCloud() {
@@ -259,51 +276,24 @@
 
     function setupRefereeView(r, m) { const cat = categories[currentCatIdx]; const match = cat.rounds[r][m]; activeM = { rIdx: r, mIdx: m, ...match }; document.getElementById('ref-cat-name').innerText = cat.name; document.getElementById('ref-stage-name').innerText = match.stage; document.getElementById('ref-hist-body').innerHTML = ""; rLog = []; refS = {red:0, blue:0}; updateRefUI(); const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); s1.innerHTML=s2.innerHTML='<option>선택</option>'; [match.p1, match.p2].forEach(p=>{ if(p) { s1.add(new Option(p,p)); s2.add(new Option(p,p)); } }); document.getElementById('ref-side-zone').style.display='block'; document.getElementById('ref-engine-ui').style.display='none'; }
     function syncSides(s) { const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); if(s==='red') s2.value=(s1.value===activeM.p1?activeM.p2:activeM.p1); else s1.value=(s2.value===activeM.p1?activeM.p2:activeM.p1); if(s1.value && s2.value){ activeM.redP=s1.value; activeM.blueP=s2.value; document.getElementById('ref-side-zone').style.display='none'; document.getElementById('ref-engine-ui').style.display='block'; document.getElementById('red-name-label').innerText=s1.value; document.getElementById('blue-name-label').innerText=s2.value; } }
-    function finishMatchAuto() { const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; m.winner = refS.red > refS.blue ? activeM.redP : activeM.blueP; m.score = `${refS.red}:${refS.blue}`; m.redP = activeM.redP; m.blueP = activeM.blueP; m.history = [...rLog]; m.judge = document.getElementById('ref-judge-name').value; m.court = document.getElementById('ref-court-num').value; pushNext(activeM.rIdx, activeM.mIdx, m.winner); db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); }
-    function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0 && cat.rounds[0][0].stage === "예선전") { const targetInfo = cat.rounds[0][m].targetM; if(!nextR[targetInfo].p1) nextR[targetInfo].p1 = w; else nextR[targetInfo].p2 = w; } else { let nm = Math.floor(m/2); if(m % 2 === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; } }
+    function finishMatchAuto(fw = null) { const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; m.winner = fw || (refS.red > refS.blue ? activeM.redP : activeM.blueP); m.score = `${refS.red}:${refS.blue}`; m.redP = activeM.redP; m.blueP = activeM.blueP; m.history = [...rLog]; m.judge = document.getElementById('ref-judge-name').value; m.court = document.getElementById('ref-court-num').value; pushNext(activeM.rIdx, activeM.mIdx, m.winner); db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); }
+    function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0 && cat.rounds[0][0].stage === "예선전") { const targetM = cat.rounds[0][m].targetM; if(!nextR[targetM].p1) nextR[targetM].p1 = w; else nextR[targetM].p2 = w; } else { let nm = Math.floor(m/2); if(m % 2 === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; } }
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     function renderBracketUI(id, isAdmin) { const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat || !cat.rounds) return; cat.rounds.forEach((round, rIdx) => { const col = document.createElement('div'); col.className = "round-column"; col.innerHTML = `<div class="stage-label">${round[0].stage}</div>`; if (rIdx === 0 && cat.rounds.length > 1 && cat.rounds[0][0].stage === "예선전") { const r1 = cat.rounds[1]; for (let i=0; i < r1.length; i++) { const mP = round.filter(m => m.targetM === i); if (mP.length === 0) { const sp = document.createElement('div'); sp.className = "match-box empty-spacer"; col.appendChild(sp); } else { mP.forEach(m => col.appendChild(createMatchBox(m, rIdx, round.indexOf(m), isAdmin))); } } } else { round.forEach((m, mIdx) => col.appendChild(createMatchBox(m, rIdx, mIdx, isAdmin))); } root.appendChild(col); }); }
     function createMatchBox(m, r, mi, isAdmin) { const box = document.createElement('div'); box.className = "match-box"; box.onclick = () => { if(m.winner) showDetail(r, mi); else if(m.p1 && m.p2) tryAccess('referee', {cat:currentCatIdx, r, m:mi}); }; let p1_pre = m.redP ? (m.p1===m.redP?'<span class="prefix-r">R</span>':'<span class="prefix-b">B</span>') : ""; let p2_pre = m.redP ? (m.p2===m.redP?'<span class="prefix-r">R</span>':'<span class="prefix-b">B</span>') : ""; box.innerHTML = `<div>${p1_pre}${m.p1||'.'}</div><div>${p2_pre}${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;color:gray;">${m.score||'대기'}</div>`; if(isAdmin && m.winner) box.innerHTML += `<div style="color:red;text-align:right;font-size:0.6rem;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋</div>`; return box; }
     function renderRankUI(id) { const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; const cat = categories[currentCatIdx]; if(!cat) return; const sorted = Object.keys(cat.stats).map(n => ({name:n, ...cat.stats[n]})).sort((a,b) => b.win - a.win || b.diff - a.diff); sorted.forEach((p, i) => { const r = root.insertRow(); r.innerHTML = `<td>${i+1}</td><td>${p.name}</td><td>${p.status}</td><td>${p.diff > 0 ? '+'+p.diff : p.diff}</td><td>${p.win}승 ${p.loss}패</td>`; }); }
-
-    // --- [★ 핵심 업데이트: 득실차 상한선(21점) 로직 적용 ★] ---
-    function calcStats() {
-        categories.forEach(cat => {
-            cat.stats = {}; cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"진행 중"});
-            if(cat.rounds) {
-                cat.rounds.forEach((round) => { round.forEach(m => { if(m.winner && m.score.includes(':')) {
-                    const rawS = m.score.split(':').map(Number);
-                    // 득실차 계산용 21점 상한선 적용
-                    const s0 = Math.min(rawS[0], 21);
-                    const s1 = Math.min(rawS[1], 21);
-                    const winStatS = (m.winner === m.redP ? s0 : s1); 
-                    const lossStatS = (m.winner === m.redP ? s1 : s0);
-                    const diff = winStatS - lossStatS;
-                    
-                    if(cat.stats[m.winner]) { 
-                        cat.stats[m.winner].win++; cat.stats[m.winner].diff += diff; 
-                        if(m.stage==="결승전") cat.stats[m.winner].status="🏆 우승"; 
-                    }
-                    const lossN = (m.winner === m.redP ? m.blueP : m.redP);
-                    if(cat.stats[lossN]) { 
-                        cat.stats[lossN].loss++; cat.stats[lossN].diff -= diff; 
-                        cat.stats[lossN].status=(m.stage==="결승전"?"준우승":m.stage+" 탈락"); 
-                    }
-                } }); });
-            }
-        });
-    }
-
     function tryAccess(v, m=null) { pendingV=v; pendingMatch=m; showView('lock'); }
-    function verifyCode() { const val=document.getElementById('code-val').value; if(val===(pendingV==='hq'?hqAuth:refAuth)){ showView(pendingV); if(pendingMatch) setupRefereeView(pendingMatch.r, pendingMatch.m); } else alert("실패"); }
+    function verifyCode() { const val=document.getElementById('code-val').value; if(val===(pendingV==='hq'?hqAuth:refAuth)){ showView(pendingV); if(pendingMatch) { currentCatIdx = pendingMatch.cat; setupRefereeView(pendingMatch.r, pendingMatch.m); } } else alert("실패"); }
     function renderTabs() { ['cat-tabs-public', 'cat-tabs-rank', 'cat-tabs-admin'].forEach(id => { const div = document.getElementById(id); if(!div) return; div.innerHTML = ""; categories.forEach((cat, i) => { const t = document.createElement('div'); t.className = `cat-tab ${i === currentCatIdx ? 'active' : ''}`; t.innerText = cat.name; t.onclick = () => { currentCatIdx = i; renderTabs(); refreshUIs(); }; div.appendChild(t); }); }); }
-    function resetTournamentAll() { if (confirm("⚠️ 전체 초기화?")) { db.ref('kca_tournament').set(null); db.ref('kca_info/name').set("데이터 실시간 통합"); location.reload(); } }
-    function resetMAdmin(r, m) { if(confirm("결과를 리셋?")) { categories[currentCatIdx].rounds[r][m].winner = null; categories[currentCatIdx].rounds[r][m].score = ""; db.ref('kca_tournament').set(categories); } }
-    function changeAdminCode() { let t = prompt("1: HQ, 2: 심판", "1"); let n = prompt("새 코드:"); if(n) { if(t==="1"){ hqAuth=n; localStorage.setItem('kca_hq_code',n); } else { refAuth=n; localStorage.setItem('kca_ref_code',n); } alert("변경됨"); } }
-    function showDetail(r, m) { const match = categories[currentCatIdx].rounds[r][m]; let hist = (match.history || []).map(h => `${h.round}R: ${h.r}:${h.b}`).join('<br>'); document.getElementById('detail-content').innerHTML = `<b>${match.stage}</b><br>${match.redP} vs ${match.blueP}<hr>최종: ${match.score}<br><br>${hist}`; document.getElementById('detail-modal').style.display = 'flex'; }
-    function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
+    function downloadTournamentData() { if (!categories.length) return alert("데이터 없음"); const wb = XLSX.utils.book_new(); const full = []; categories.forEach(cat => { if(!cat.rounds) return; cat.rounds.forEach(round => round.forEach(m => { if(m.winner) full.push({ "종목": cat.name, "단계": m.stage, "레드": m.redP, "블루": m.blueP, "스코어": m.score }); })); }); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(full), "결과"); XLSX.writeFile(wb, "Tournament_Data.xlsx"); }
+    function resetTournamentAll() { if (confirm("전체 초기화?")) { db.ref('kca_tournament').set(null); location.reload(); } }
+    function resetMAdmin(r, m) { if(confirm("리셋?")) { categories[currentCatIdx].rounds[r][m].winner = null; categories[currentCatIdx].rounds[r][m].score = ""; db.ref('kca_tournament').set(categories); } }
+    function undoRoundRef() { if (!rLog.length) return alert("기록 없음"); const last = rLog.pop(); refS.red -= last.r; refS.blue -= last.b; updateRefUI(); document.getElementById('ref-hist-body').deleteRow(document.getElementById('ref-hist-body').rows.length - 1); }
     function updateRefUI() { document.getElementById('ref-red-total').innerText = refS.red; document.getElementById('ref-blue-total').innerText = refS.blue; }
-    
+    function showDetail(r, m) { const match = categories[currentCatIdx].rounds[r][m]; let hist = (match.history || []).map(h => `${h.round}R: ${h.r}:${h.b}`).join('<br>'); document.getElementById('detail-content').innerHTML = `<b>${match.stage}</b><br>${match.redP} vs ${match.blueP}<hr>${hist}`; document.getElementById('detail-modal').style.display = 'flex'; }
+    function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
+    function changeAdminCode() { let t = prompt("1: HQ, 2: 심판", "1"); let n = prompt("새 코드:"); if(n) { if(t==="1"){ hqAuth=n; localStorage.setItem('kca_hq_code',n); } else { refAuth=n; localStorage.setItem('kca_ref_code',n); } alert("변경됨"); } }
+
     document.getElementById('xlsx-hq').addEventListener('change', (e)=>{ const rd = new FileReader(); rd.onload=(rd_e)=>{ const wb=XLSX.read(new Uint8Array(rd_e.target.result),{type:'array'}); categories=[]; wb.SheetNames.forEach(n=>{ const l=XLSX.utils.sheet_to_json(wb.Sheets[n]); if(l.length) categories.push({name:n, players:l, rounds:[], stats:{}}); }); refreshUIs(); }; rd.readAsArrayBuffer(e.target.files[0]); });
 </script>
 </body>
