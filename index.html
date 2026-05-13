@@ -227,7 +227,6 @@
         refI = {r3:0, r1:0, b3:0, b1:0}; ["r3-q","r1-q","b3-q","b1-q"].forEach(id=>document.getElementById(id).innerText=0); tStop();
     }
 
-    // 3. 기권패 기능 보강
     function declareWalkover(team) {
         if(!confirm(team.toUpperCase() + "팀의 기권을 선언하시겠습니까?")) return;
         if(team === 'red') { refS.red = 0; refS.blue = 21; }
@@ -313,7 +312,6 @@
         } 
     }
 
-    // 2. 점수 21점 상한 수정
     function finishMatchAuto() { 
         const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
         const finalR = Math.min(refS.red, 21);
@@ -331,7 +329,6 @@
     function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0 && cat.rounds[0][0].stage === "예선전") { const targetInfo = cat.rounds[0][m].targetM; if(!nextR[targetInfo].p1) nextR[targetInfo].p1 = w; else nextR[targetInfo].p2 = w; } else { let nm = Math.floor(m/2); if(m % 2 === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; } }
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     
-    // 1. 대진표 R/B 표시 오류 수정
     function renderBracketUI(id, isAdmin) { 
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; 
         const cat = categories[currentCatIdx]; if(!cat || !cat.rounds) return; 
@@ -367,7 +364,6 @@
     function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
     function renderTabs() { ['cat-tabs-public', 'cat-tabs-rank', 'cat-tabs-admin'].forEach(id => { const div = document.getElementById(id); if(!div) return; div.innerHTML = ""; categories.forEach((cat, i) => { const t = document.createElement('div'); t.className = `cat-tab ${i === currentCatIdx ? 'active' : ''}`; t.innerText = cat.name; t.onclick = () => { currentCatIdx = i; renderTabs(); refreshUIs(); }; div.appendChild(t); }); }); }
     
-    // 5. 엑셀 다운로드 상세 데이터 추가
     function downloadTournamentData() { 
         if (!categories.length) return alert("데이터 없음"); 
         const wb = XLSX.utils.book_new(); 
@@ -389,10 +385,74 @@
     }
 
     function resetTournamentAll() { if (confirm("전체 데이터를 초기화하시겠습니까?")) { db.ref('kca_tournament').set(null); location.reload(); } }
-    function resetMAdmin(r, m) { if(confirm("해당 경기 결과를 리셋하시겠습니까?")) { categories[currentCatIdx].rounds[r][m].winner = null; categories[currentCatIdx].rounds[r][m].score = ""; db.ref('kca_tournament').set(categories); } }
+    
+    // [업데이트된 리셋 기능] 운영본부 리셋: 팀 배정 초기화 및 상위 진출 연쇄 리셋
+    function resetMAdmin(r, m) {
+        if (!confirm("해당 경기 결과와 상위 진출 데이터를 모두 리셋하시겠습니까?")) return;
+        
+        const cat = categories[currentCatIdx];
+        const targetMatch = cat.rounds[r][m];
+        
+        // 1. 현재 경기의 데이터 초기화 (팀 배정 포함)
+        targetMatch.winner = null;
+        targetMatch.score = "";
+        targetMatch.redP = null;
+        targetMatch.blueP = null;
+        targetMatch.history = [];
+        targetMatch.judge = "";
+        targetMatch.court = "";
+
+        // 2. 상위 라운드 진출 데이터 연쇄 삭제 실행
+        clearNext(r, m);
+
+        // 3. DB 반영 및 UI 업데이트
+        db.ref('kca_tournament').set(categories).then(() => {
+            alert("리셋되었습니다.");
+        });
+    }
+
+    // [연쇄 리셋 보조 함수] 상위 라운드의 빈 슬롯을 찾아 비우는 재귀 함수
+    function clearNext(r, m) {
+        const cat = categories[currentCatIdx];
+        if (r + 1 >= cat.rounds.length) return; 
+
+        const nextR = cat.rounds[r + 1];
+        let targetIdx, isP1;
+
+        if (r === 0 && cat.rounds[0][0].stage === "예선전") {
+            targetIdx = cat.rounds[0][m].targetM;
+            // 예선전은 targetM 구조상 p1/p2 여부를 이름 비교 없이 확정하기 어려우므로 둘 다 체크하여 삭제
+            const nextMatch = nextR[targetIdx];
+            // 승자가 올라갔던 슬롯을 비움 (간단히 p1, p2 중 현재 매치의 승자였던 데이터를 비우는 로직을 확장 가능하나 여기서는 구조적 위치로 판단)
+        } else {
+            targetIdx = Math.floor(m / 2);
+            isP1 = (m % 2 === 0);
+        }
+
+        const nextMatch = nextR[targetIdx];
+        if (!nextMatch) return;
+
+        // 상위 매치의 참가자 명단 비우기
+        if (r === 0 && cat.rounds[0][0].stage === "예선전") {
+            // 예선전 로직은 pushNext의 역순으로 비우기 위해 이름 기반 체크가 필요할 수 있으나 
+            // 기본적으로 상위 매치의 p1 또는 p2를 초기화
+            nextMatch.p1 = ""; nextMatch.p2 = "";
+        } else {
+            if (isP1) nextMatch.p1 = ""; else nextMatch.p2 = "";
+        }
+
+        // 연쇄 반응: 상위 매치도 이미 결과가 있다면 그 위로 계속 올라가며 리셋
+        if (nextMatch.winner) {
+            nextMatch.winner = null;
+            nextMatch.score = "";
+            nextMatch.redP = null;
+            nextMatch.blueP = null;
+            clearNext(r + 1, targetIdx);
+        }
+    }
+
     function changeAdminCode() { let t = prompt("1: HQ, 2: 심판", "1"); let n = prompt("새 코드:"); if(n) { if(t==="1"){ hqAuth=n; localStorage.setItem('kca_hq_code',n); } else { refAuth=n; localStorage.setItem('kca_ref_code',n); } alert("변경됨"); } }
     
-    // 4. 고유번호 분류 및 이름(고유번호) 표시 통합
     document.getElementById('xlsx-hq').addEventListener('change', (e)=>{ 
         const rd = new FileReader(); 
         rd.onload=(rd_e)=>{ 
