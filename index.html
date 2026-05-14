@@ -375,6 +375,25 @@
 
         categories.forEach(cat => { 
             if(!cat.rounds) return; 
+
+            // --- [순위 계산 로직 추가] ---
+            const isLeague = cat.rounds && cat.rounds[0] && cat.rounds[0][0].stage === "리그전";
+            const sortedStats = Object.keys(cat.stats).map(name => ({
+                name: name,
+                ...cat.stats[name]
+            })).sort((a, b) => {
+                if(!isLeague) {
+                    if(b.rankVal !== a.rankVal) return b.rankVal - a.rankVal;
+                }
+                return b.win - a.win || b.diff - a.diff;
+            });
+
+            // 이름별로 순위(1, 2, 3...) 매핑 생성
+            const rankMap = {};
+            sortedStats.forEach((p, idx) => {
+                rankMap[p.name] = (idx + 1) + "위";
+            });
+            // ---------------------------
             
             cat.rounds.forEach(round => round.forEach(m => { 
                 if(m.winner) {
@@ -392,7 +411,7 @@
                         "고유번호": redInfo.uid,
                         "참가자성명": redInfo.name,
                         "경기종목": cat.name,
-                        "종목별랭킹": cat.stats[m.redP] ? cat.stats[m.redP].rankVal : "",
+                        "종목별대회순위": rankMap[m.redP] || "기록없음",
                         "승패": (m.winner === m.redP ? "승" : "패"),
                         "진행단계": m.stage,
                         "라운드상세스코어": histStr
@@ -404,7 +423,7 @@
                         "고유번호": blueInfo.uid,
                         "참가자성명": blueInfo.name,
                         "경기종목": cat.name,
-                        "종목별랭킹": cat.stats[m.blueP] ? cat.stats[m.blueP].rankVal : "",
+                        "종목별대회순위": rankMap[m.blueP] || "기록없음",
                         "승패": (m.winner === m.blueP ? "승" : "패"),
                         "진행단계": m.stage,
                         "라운드상세스코어": histStr
@@ -421,7 +440,6 @@
             return { name: displayName, uid: "" };
         }
 
-        // 시트 생성 및 추가
         const sheet1 = XLSX.utils.json_to_sheet(matchData);
         const sheet2 = XLSX.utils.json_to_sheet(playerData);
         
