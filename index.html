@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v9.1</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v9.2</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -220,11 +220,24 @@
     function submitRoundRef() {
         const rs = refI.r3*3 + refI.r1, bs = refI.b3*3 + refI.b1, diff = rs-bs, rg = diff>0?diff:0, bg = diff<0?Math.abs(diff):0;
         refS.red += rg; refS.blue += bg;
-        rLog.push({ round: rLog.length+1, r: rg, b: bg, r_orig: rs, b_orig: bs });
+        
+        // r3, r1, b3, b1 데이터를 함께 로그에 저장하도록 변경
+        rLog.push({ 
+            round: rLog.length+1, 
+            r: rg, b: bg, 
+            r_orig: rs, b_orig: bs,
+            r3: refI.r3, r1: refI.r1, // RED 홀, 보드 개수 추가
+            b3: refI.b3, b1: refI.b1  // BLUE 홀, 보드 개수 추가
+        });
+        
         updateRefUI();
-        const row = document.getElementById('ref-hist-body').insertRow(-1); row.innerHTML = `<td>${rLog.length}R</td><td>${rg}</td><td>${bg}</td>`;
-        if(refS.red >= 21 || refS.blue >= 21) alert("🎉 경기가 21점에 도달했습니다. 최종 종료 버튼을 눌러주세요.");
-        refI = {r3:0, r1:0, b3:0, b1:0}; ["r3-q","r1-q","b3-q","b1-q"].forEach(id=>document.getElementById(id).innerText=0); tStop();
+        const row = document.getElementById('ref-hist-body').insertRow(-1); 
+        row.innerHTML = `<td>${rLog.length}R</td><td>${rg}</td><td>${bg}</td>`;
+        
+        if(refS.red >= 21 || refS.blue >= 21) alert("🎉 경기가 21점에 도달했습니다.");
+        refI = {r3:0, r1:0, b3:0, b1:0}; 
+        ["r3-q","r1-q","b3-q","b1-q"].forEach(id=>document.getElementById(id).innerText=0); 
+        tStop();
     }
 
     function declareWalkover(team) {
@@ -368,15 +381,10 @@
         if (!categories.length) return alert("데이터 없음"); 
         const wb = XLSX.utils.book_new(); 
         
-        // 1. 경기 중심 데이터 (기존 유지)
-        const matchData = []; 
-        // 2. 참가자 중심 데이터 (요청하신 추가 기능)
-        const playerData = [];
-
         categories.forEach(cat => { 
             if(!cat.rounds) return; 
 
-            // --- [순위 계산 로직 추가] ---
+            // 1. 해당 종목의 순위 계산 (기존 로직 유지)
             const isLeague = cat.rounds && cat.rounds[0] && cat.rounds[0][0].stage === "리그전";
             const sortedStats = Object.keys(cat.stats).map(name => ({
                 name: name,
@@ -388,51 +396,57 @@
                 return b.win - a.win || b.diff - a.diff;
             });
 
-            // 이름별로 순위(1, 2, 3...) 매핑 생성
             const rankMap = {};
             sortedStats.forEach((p, idx) => {
                 rankMap[p.name] = (idx + 1) + "위";
             });
-            // ---------------------------
-            
+
+            // 2. 해당 종목의 참가자별 결과 데이터 수집
+            const catPlayerData = [];
+
             cat.rounds.forEach(round => round.forEach(m => { 
                 if(m.winner) {
-                    let histStr = (m.history || []).map(h => `${h.round}R(${h.r_orig}:${h.b_orig})`).join(', ');
+                    // 라운드별 홀(H)/보드(B) 개수 상세 문자열 생성
+                    // 형식: 1R(H:홀수,B:보드수 / 상대H:홀수,상대B:보드수)
+                    let detailStr = (m.history || []).map(h => {
+                        // h 객체구조: { round, r, b, r_orig, b_orig, r3, r1, b3, b1 } 
+                        // 참고: 기존 adj 함수에서 r3, r1 등을 기록하도록 보완된 데이터 사용
+                        const rH = h.r3 || 0, rB = h.r1 || 0;
+                        const bH = h.b3 || 0, bB = h.b1 || 0;
+                        return `${h.round}R(RED H:${rH},B:${rB} / BLUE H:${bH},B:${bB})`;
+                    }).join('\n'); // 엑셀 셀 내 줄바꿈을 위해 \n 사용
                     
-                    // 경기 중심 데이터 푸시
-                    matchData.push({ 
-                        "종목": cat.name, "단계": m.stage, "RED": m.redP, "BLUE": m.blueP, 
-                        "스코어": m.score, "라운드상세": histStr, "심판": m.judge||"", "코트": m.court||"" 
-                    });
-
-                    // 참가자 중심 데이터 추출 (RED팀 기준)
+                    // RED팀 기록 추가
                     const redInfo = parseNameAndUid(m.redP);
-                    playerData.push({
+                    catPlayerData.push({
                         "고유번호": redInfo.uid,
-                        "참가자성명": redInfo.name,
-                        "경기종목": cat.name,
-                        "종목별대회순위": rankMap[m.redP] || "기록없음",
-                        "승패": (m.winner === m.redP ? "승" : "패"),
+                        "참가자": redInfo.name,
+                        "종목순위": rankMap[m.redP] || "기록없음",
                         "진행단계": m.stage,
-                        "라운드상세스코어": histStr
+                        "승패": (m.winner === m.redP ? "승" : "패"),
+                        "라운드상세(H:홀,B:보드)": detailStr
                     });
 
-                    // 참가자 중심 데이터 추출 (BLUE팀 기준)
+                    // BLUE팀 기록 추가
                     const blueInfo = parseNameAndUid(m.blueP);
-                    playerData.push({
+                    catPlayerData.push({
                         "고유번호": blueInfo.uid,
-                        "참가자성명": blueInfo.name,
-                        "경기종목": cat.name,
-                        "종목별대회순위": rankMap[m.blueP] || "기록없음",
-                        "승패": (m.winner === m.blueP ? "승" : "패"),
+                        "참가자": blueInfo.name,
+                        "종목순위": rankMap[m.blueP] || "기록없음",
                         "진행단계": m.stage,
-                        "라운드상세스코어": histStr
+                        "승패": (m.winner === m.blueP ? "승" : "패"),
+                        "라운드상세(H:홀,B:보드)": detailStr
                     });
                 }
             })); 
+
+            if(catPlayerData.length > 0) {
+                const sheetName = cat.name.replace(/[\\?*\[\]\/]/g, "").substring(0, 30);
+                const ws = XLSX.utils.json_to_sheet(catPlayerData);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            }
         }); 
 
-        // 이름에서 고유번호 분리 함수 (helper)
         function parseNameAndUid(displayName) {
             if(!displayName) return { name: "", uid: "" };
             const match = displayName.match(/(.*)\((.*)\)/);
@@ -440,13 +454,7 @@
             return { name: displayName, uid: "" };
         }
 
-        const sheet1 = XLSX.utils.json_to_sheet(matchData);
-        const sheet2 = XLSX.utils.json_to_sheet(playerData);
-        
-        XLSX.utils.book_append_sheet(wb, sheet1, "경기별_결과"); 
-        XLSX.utils.book_append_sheet(wb, sheet2, "참가자별_결과"); 
-        
-        XLSX.writeFile(wb, "KCA_Tournament_Final_Report.xlsx"); 
+        XLSX.writeFile(wb, `KCA_상세기록_보고서_${new Date().toLocaleDateString()}.xlsx`); 
     }
 
     function resetTournamentAll() { if (confirm("전체 데이터를 초기화하시겠습니까?")) { db.ref('kca_tournament').set(null); location.reload(); } }
