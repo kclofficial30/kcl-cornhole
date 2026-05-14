@@ -367,21 +367,68 @@
     function downloadTournamentData() { 
         if (!categories.length) return alert("데이터 없음"); 
         const wb = XLSX.utils.book_new(); 
-        const full = []; 
+        
+        // 1. 경기 중심 데이터 (기존 유지)
+        const matchData = []; 
+        // 2. 참가자 중심 데이터 (요청하신 추가 기능)
+        const playerData = [];
+
         categories.forEach(cat => { 
             if(!cat.rounds) return; 
+            
             cat.rounds.forEach(round => round.forEach(m => { 
                 if(m.winner) {
                     let histStr = (m.history || []).map(h => `${h.round}R(${h.r_orig}:${h.b_orig})`).join(', ');
-                    full.push({ 
+                    
+                    // 경기 중심 데이터 푸시
+                    matchData.push({ 
                         "종목": cat.name, "단계": m.stage, "RED": m.redP, "BLUE": m.blueP, 
                         "스코어": m.score, "라운드상세": histStr, "심판": m.judge||"", "코트": m.court||"" 
-                    }); 
+                    });
+
+                    // 참가자 중심 데이터 추출 (RED팀 기준)
+                    const redInfo = parseNameAndUid(m.redP);
+                    playerData.push({
+                        "고유번호": redInfo.uid,
+                        "참가자성명": redInfo.name,
+                        "경기종목": cat.name,
+                        "종목별랭킹": cat.stats[m.redP] ? cat.stats[m.redP].rankVal : "",
+                        "승패": (m.winner === m.redP ? "승" : "패"),
+                        "진행단계": m.stage,
+                        "라운드상세스코어": histStr
+                    });
+
+                    // 참가자 중심 데이터 추출 (BLUE팀 기준)
+                    const blueInfo = parseNameAndUid(m.blueP);
+                    playerData.push({
+                        "고유번호": blueInfo.uid,
+                        "참가자성명": blueInfo.name,
+                        "경기종목": cat.name,
+                        "종목별랭킹": cat.stats[m.blueP] ? cat.stats[m.blueP].rankVal : "",
+                        "승패": (m.winner === m.blueP ? "승" : "패"),
+                        "진행단계": m.stage,
+                        "라운드상세스코어": histStr
+                    });
                 }
             })); 
         }); 
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(full), "결과"); 
-        XLSX.writeFile(wb, "KCA_Tournament_Result.xlsx"); 
+
+        // 이름에서 고유번호 분리 함수 (helper)
+        function parseNameAndUid(displayName) {
+            if(!displayName) return { name: "", uid: "" };
+            const match = displayName.match(/(.*)\((.*)\)/);
+            if(match) return { name: match[1], uid: match[2] };
+            return { name: displayName, uid: "" };
+        }
+
+        // 시트 생성 및 추가
+        const sheet1 = XLSX.utils.json_to_sheet(matchData);
+        const sheet2 = XLSX.utils.json_to_sheet(playerData);
+        
+        XLSX.utils.book_append_sheet(wb, sheet1, "경기별_결과"); 
+        XLSX.utils.book_append_sheet(wb, sheet2, "참가자별_결과"); 
+        
+        XLSX.writeFile(wb, "KCA_Tournament_Final_Report.xlsx"); 
     }
 
     function resetTournamentAll() { if (confirm("전체 데이터를 초기화하시겠습니까?")) { db.ref('kca_tournament').set(null); location.reload(); } }
