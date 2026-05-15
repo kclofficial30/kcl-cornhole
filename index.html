@@ -267,85 +267,60 @@
 function makeBracketsAndCloud() {
     if (!categories.length) return alert("명단을 로드하세요.");
     const mode = document.getElementById('assign-mode').value;
-
     categories.forEach(cat => {
         let list = [...cat.players];
+        if (mode === 'random') list.sort(() => Math.random() - 0.5); 
+        else list.sort((a,b) => (Number(a.랭킹)||99) - (Number(b.랭킹)||99));
         
-        // 1. 정렬
-        if (mode === 'random') {
-            list.sort(() => Math.random() - 0.5);
-        } else {
-            list.sort((a, b) => (Number(a.랭킹) || 99) - (Number(b.랭킹) || 99));
-        }
-
         cat.rounds = [];
-
         if (mode === 'full_league') {
             let matches = [];
-            for (let i = 0; i < list.length; i++) {
-                for (let j = i + 1; j < list.length; j++) {
-                    matches.push({ p1: list[i].이름, p2: list[j].이름, winner: null, score: "", stage: "리그전" });
-                }
-            }
+            for(let i=0; i<list.length; i++) for(let j=i+1; j<list.length; j++) matches.push({p1: list[i].이름, p2: list[j].이름, winner:null, score:"", stage:"리그전"});
             cat.rounds.push(matches);
-        } 
-        else {
-            const N = list.length;
-            if (N < 2) return;
+        } else {
+            const N = list.length; if (N < 2) return;
+            let p2 = 1; while (p2 * 2 <= N) p2 *= 2; 
+            const preN = N - p2; // 예선전 경기 수 (7명일 때 3)
 
-            // N보다 작은 가장 큰 2의 거듭제곱 P 찾기 (7명일 때 P=4)
-            let P = 1;
-            while (P * 2 <= N) P *= 2;
-
-            const preMatchCount = N - P; // 예선전 경기 수 (7명일 때 3경기)
-            let firstRoundMatches = [];
-            let nextRoundSeedNames = [];
-
-            if (preMatchCount > 0) {
-                // 예선전(Preliminary) 생성: 뒤쪽 순위 인원들 배치
-                const prePlayers = list.slice(P - preMatchCount); 
-                // 부전승(Bye): 앞쪽 순위 인원들
-                const byePlayers = list.slice(0, P - preMatchCount);
-
-                for (let i = 0; i < preMatchCount; i++) {
-                    firstRoundMatches.push({
-                        p1: prePlayers[i * 2]?.이름 || "",
-                        p2: prePlayers[i * 2 + 1]?.이름 || "",
-                        winner: null, score: "", stage: "예선전", targetM: i
-                    });
-                    nextRoundSeedNames.push(""); // 예선 승자 자리 예약
-                }
+            if (preN > 0) {
+                // 예선전 생성
+                let pm = [];
+                const prePlayers = list.slice(N - (preN * 2)); // 예선 참여 6명
+                const byePlayers = list.slice(0, N - (preN * 2)); // 부전승 1명
                 
-                // 부전승 인원들을 본선 명단에 추가
-                byePlayers.forEach(p => nextRoundSeedNames.push(p.이름));
-                cat.rounds.push(firstRoundMatches);
+                for (let i=0; i<preN; i++) {
+                    pm.push({p1:prePlayers[i*2].이름, p2:prePlayers[i*2+1].이름, winner:null, score:"", stage:"예선전", targetM: i});
+                }
+                cat.rounds.push(pm);
+
+                // 본선(P강) 생성
+                let r1 = [];
+                for (let i=0; i < p2 / 2; i++) { r1.push({p1:"", p2:"", winner:null, score:"", stage:p2+"강"}); }
+                
+                // 예선 승자가 들어갈 자리 예약 (0, 1, 2번 슬롯)
+                // 부전승 인원은 남은 자리에 배치
+                let currentSlot = 0;
+                for(let i=0; i<preN; i++) {
+                    // targetM은 이미 pm에 적혀있음. 여기선 자리만 확보
+                }
+                let byeIdx = 0;
+                for(let i=0; i<r1.length; i++) {
+                    if(i * 2 >= preN && byeIdx < byePlayers.length) r1[i].p1 = byePlayers[byeIdx++].이름;
+                    if(i * 2 + 1 >= preN && byeIdx < byePlayers.length) r1[i].p2 = byePlayers[byeIdx++].이름;
+                }
+                cat.rounds.push(r1);
             } else {
-                nextRoundSeedNames = list.map(p => p.이름);
+                let fR = []; for (let i=0; i<N/2; i++) fR.push({p1:list[i*2].이름, p2:list[i*2+1].이름, winner:null, score:"", stage:N+"강"}); cat.rounds.push(fR);
             }
-
-            // 본선 라운드 생성 (P강 -> ... -> 결승전)
-            let currentLevelPlayers = nextRoundSeedNames;
-            while (currentLevelPlayers.length > 1) {
-                let matches = [];
-                const stageName = currentLevelPlayers.length === 2 ? "결승전" : currentLevelPlayers.length + "강";
-                
-                for (let i = 0; i < currentLevelPlayers.length; i += 2) {
-                    matches.push({
-                        p1: currentLevelPlayers[i] || "",
-                        p2: currentLevelPlayers[i + 1] || "",
-                        winner: null, score: "", stage: stageName
-                    });
-                }
-                cat.rounds.push(matches);
-                currentLevelPlayers = new Array(matches.length).fill("");
+            let lastL = cat.rounds[cat.rounds.length-1].length; 
+            while(lastL > 1) { 
+                lastL /= 2; let nextR = []; 
+                for (let i=0; i<lastL; i++) nextR.push({p1:"", p2:"", winner:null, score:"", stage:(lastL*2===2?"결승전":(lastL*2)+"강")}); 
+                cat.rounds.push(nextR); 
             }
         }
     });
-
-    db.ref('kca_tournament').set(categories).then(() => {
-        alert("대진표가 생성되었습니다.");
-        refreshUIs();
-    });
+    db.ref('kca_tournament').set(categories).then(() => { alert("대진표가 생성되었습니다."); refreshUIs(); });
 }
     
     function setupRefereeView(r, m) { 
@@ -392,7 +367,21 @@ function makeBracketsAndCloud() {
         db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); 
     }
 
-    function pushNext(r, m, w) { if (!w) return; const cat = categories[currentCatIdx]; if(r+1 >= cat.rounds.length) return; const nextR = cat.rounds[r+1]; if (r === 0 && cat.rounds[0][0].stage === "예선전") { const targetInfo = cat.rounds[0][m].targetM; if(!nextR[targetInfo].p1) nextR[targetInfo].p1 = w; else nextR[targetInfo].p2 = w; } else { let nm = Math.floor(m/2); if(m % 2 === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; } }
+function pushNext(r, m, w) { 
+    if (!w) return; 
+    const cat = categories[currentCatIdx]; 
+    if(r+1 >= cat.rounds.length) return; 
+    const nextR = cat.rounds[r+1]; 
+    
+    if (cat.rounds[r][0].stage === "예선전") { 
+        const targetIdx = Math.floor(cat.rounds[r][m].targetM / 2);
+        const isP2 = cat.rounds[r][m].targetM % 2 === 1;
+        if(!isP2) nextR[targetIdx].p1 = w; else nextR[targetIdx].p2 = w; 
+    } else { 
+        let nm = Math.floor(m/2); 
+        if(m % 2 === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; 
+    } 
+}
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     
     function renderBracketUI(id, isAdmin) { 
