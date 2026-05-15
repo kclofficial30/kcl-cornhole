@@ -271,7 +271,7 @@ function makeBracketsAndCloud() {
     categories.forEach(cat => {
         let list = [...cat.players];
         
-        // 1. 정렬 (랜덤 또는 랭킹)
+        // 1. 정렬
         if (mode === 'random') {
             list.sort(() => Math.random() - 0.5);
         } else {
@@ -280,7 +280,6 @@ function makeBracketsAndCloud() {
 
         cat.rounds = [];
 
-        // --- 풀리그 모드 ---
         if (mode === 'full_league') {
             let matches = [];
             for (let i = 0; i < list.length; i++) {
@@ -290,12 +289,11 @@ function makeBracketsAndCloud() {
             }
             cat.rounds.push(matches);
         } 
-        // --- 토너먼트 모드 (7명, 15명, 17명 완벽 대응) ---
         else {
             const N = list.length;
             if (N < 2) return;
 
-            // N보다 작은 가장 큰 2의 거듭제곱(P)을 구함 (예: 7명->4, 15명->8, 17명->16)
+            // N보다 작은 가장 큰 2의 거듭제곱 P 찾기 (7명일 때 P=4)
             let P = 1;
             while (P * 2 <= N) P *= 2;
 
@@ -304,11 +302,9 @@ function makeBracketsAndCloud() {
             let nextRoundSeedNames = [];
 
             if (preMatchCount > 0) {
-                // 1. 예선전(Preliminary) 생성
-                // 하위 시드 인원들을 예선전에 배치
+                // 예선전(Preliminary) 생성: 뒤쪽 순위 인원들 배치
                 const prePlayers = list.slice(P - preMatchCount); 
-                
-                // 예선전을 치르지 않고 바로 다음 라운드(P강)에 대기하는 상위 시드
+                // 부전승(Bye): 앞쪽 순위 인원들
                 const byePlayers = list.slice(0, P - preMatchCount);
 
                 for (let i = 0; i < preMatchCount; i++) {
@@ -317,18 +313,17 @@ function makeBracketsAndCloud() {
                         p2: prePlayers[i * 2 + 1]?.이름 || "",
                         winner: null, score: "", stage: "예선전", targetM: i
                     });
-                    nextRoundSeedNames.push(""); // 예선 승자가 들어올 자리
+                    nextRoundSeedNames.push(""); // 예선 승자 자리 예약
                 }
                 
-                // 부전승 인원들을 다음 라운드 명단에 추가
+                // 부전승 인원들을 본선 명단에 추가
                 byePlayers.forEach(p => nextRoundSeedNames.push(p.이름));
                 cat.rounds.push(firstRoundMatches);
             } else {
-                // 인원이 딱 2^n인 경우
                 nextRoundSeedNames = list.map(p => p.이름);
             }
 
-            // 2. 본선 라운드 (P강 -> ... -> 결승) 생성
+            // 본선 라운드 생성 (P강 -> ... -> 결승전)
             let currentLevelPlayers = nextRoundSeedNames;
             while (currentLevelPlayers.length > 1) {
                 let matches = [];
@@ -342,24 +337,17 @@ function makeBracketsAndCloud() {
                     });
                 }
                 cat.rounds.push(matches);
-                // 다음 라운드 인원 자리를 만듦
                 currentLevelPlayers = new Array(matches.length).fill("");
             }
         }
     });
 
-    // Firebase 저장 및 UI 업데이트
-    db.ref('kca_tournament').set(categories)
-        .then(() => {
-            alert("대진표가 성공적으로 생성되었습니다.");
-            refreshUIs(); // UI 즉시 갱신
-        })
-        .catch((err) => {
-            console.error(err);
-            alert("저장 중 오류 발생: " + err.message);
-        });
+    db.ref('kca_tournament').set(categories).then(() => {
+        alert("대진표가 생성되었습니다.");
+        refreshUIs();
+    });
 }
-
+    
     function setupRefereeView(r, m) { 
         const cat = categories[currentCatIdx]; 
         const match = cat.rounds[r][m]; 
