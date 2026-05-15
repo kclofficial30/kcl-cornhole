@@ -264,7 +264,7 @@
         });
     }
 
-   function makeBracketsAndCloud() {
+function makeBracketsAndCloud() {
     if (!categories.length) return alert("명단을 로드하세요.");
     const mode = document.getElementById('assign-mode').value;
 
@@ -279,7 +279,7 @@
 
         cat.rounds = [];
 
-        // --- 풀리그 모드 ---
+        // --- 풀리그 모드 (생략) ---
         if (mode === 'full_league') {
             let matches = [];
             for (let i = 0; i < list.length; i++) {
@@ -289,48 +289,45 @@
             }
             cat.rounds.push(matches);
         } 
-        // --- 토너먼트 모드 (개선된 부전승 로직) ---
+        // --- 토너먼트 모드 (개선된 로직) ---
         else {
             const N = list.length;
             if (N < 2) return;
 
-            // 1. N보다 작은 가장 큰 2의 거듭제곱(P)을 구함 (예: 17명 -> 16, 7명 -> 4)
+            // N보다 작은 가장 큰 2의 거듭제곱(P)을 구함 (7명일 때 P=4)
             let P = 1;
             while (P * 2 <= N) P *= 2;
 
-            // 2. 예선전이 필요한 인원 계산 (P를 초과하는 인원들)
-            const preCount = N - P; // 예: 17명일 때 1명, 7명일 때 3명
+            // 예선전이 필요한 경기 수 계산 (7명일 때 3경기)
+            const preCount = N - P; 
             let currentRoundMatches = [];
             let nextRoundPlayers = [];
 
             if (preCount > 0) {
-                // 하위 랭킹(리스트 뒷부분) 인원들을 예선전에 배치
+                // 예선전 치를 인원과 바로 진출할 인원 분리
                 const prePlayers = list.slice(N - (preCount * 2));
                 const byePlayers = list.slice(0, N - (preCount * 2));
 
                 for (let i = 0; i < preCount; i++) {
                     currentRoundMatches.push({
                         p1: prePlayers[i * 2].이름,
-                        p2: prePlayers[i * 2 + 1].이름,
+                        p2: prePlayers[i * 2 + 1].イ름,
                         winner: null, score: "", stage: "예선전", targetM: i
                     });
-                    // 다음 라운드에 자리는 만들어두되 이름은 비움 (예선 승자가 올라올 자리)
-                    nextRoundPlayers.push("");
+                    nextRoundPlayers.push(""); // 예선 승자가 올라올 자리
                 }
-                // 부전승 인원들을 다음 라운드 명단에 추가
+                // 부전승 인원 추가
                 byePlayers.forEach(p => nextRoundPlayers.push(p.이름));
                 cat.rounds.push(currentRoundMatches);
             } else {
-                // 인원이 2^n인 경우
                 nextRoundPlayers = list.map(p => p.이름);
             }
 
-            // 3. 본선 라운드 생성 (P강, P/2강 ... 결승)
+            // 본선 대진 (4강, 8강 등) 구성
             let currentPlayers = nextRoundPlayers;
             while (currentPlayers.length > 1) {
                 let matches = [];
                 const stageName = currentPlayers.length === 2 ? "결승전" : currentPlayers.length + "강";
-                
                 for (let i = 0; i < currentPlayers.length; i += 2) {
                     matches.push({
                         p1: currentPlayers[i] || "",
@@ -339,8 +336,6 @@
                     });
                 }
                 cat.rounds.push(matches);
-                
-                // 다음 라운드를 위해 인원수 절반으로 줄임 (이름은 공백)
                 currentPlayers = new Array(matches.length).fill("");
             }
         }
