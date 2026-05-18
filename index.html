@@ -212,11 +212,16 @@
                 </div>
                 
                 <div class="action-container">
-                    <button class="btn-confirm-round" onclick="submitRoundRef()">라운드 결과 확정</button>
-                    <button class="btn-action-side" onclick="undoRoundRef()">이전 결과 취소</button>
-                    <button class="btn-action-side resign-red" onclick="declareWalkover('red')">레드팀 기권</button>
-                    <button class="btn-action-side resign-blue" onclick="declareWalkover('blue')">블루팀 기권</button>
-                </div>
+    <div class="action-left-zone">
+        <button class="btn-confirm-round" onclick="submitRoundRef()">라운드 결과 확정</button>
+    </div>
+    
+    <div class="action-right-zone">
+        <button class="btn-action-side" onclick="undoRoundRef()">이전 결과<br>취소</button>
+        <button class="btn-action-side resign-red" onclick="declareWalkover('red')">레드팀<br>기권</button>
+        <button class="btn-action-side resign-blue" onclick="declareWalkover('blue')">블루팀<br>기권</button>
+    </div>
+</div>
                 
                 <div class="history-section">
                     <div class="history-title-row">
