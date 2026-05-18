@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v9.7</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v9.6</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -352,23 +352,13 @@
         window.scrollTo(0,0);
     }
 
-function tryAccess(v, m=null) {
-    if (v === 'referee' && m) {
-        const matchKey = `m_${currentCatIdx}_${m.r}_${m.m}`;
-        db.ref('activeMatches/' + matchKey).once('value', (s) => {
-            if (s.exists()) {
-                alert("이미 다른 심판이 이 경기를 진행 중입니다!");
-            } else {
-                pendingV = v; pendingMatch = m;
-                // 인증창 호출...
-                showView('lock');
-            }
-        });
-    } else {
+    function tryAccess(v, m=null) {
         pendingV = v; pendingMatch = m;
+        const lockTitle = document.getElementById('lock-title');
+        if(v === 'hq') lockTitle.innerText = "운영본부 코드를 입력하세요";
+        else lockTitle.innerText = "심판 코드를 입력하세요";
         showView('lock');
     }
-}
 
     function verifyCode() {
         const val = document.getElementById('code-val').value;
@@ -483,11 +473,7 @@ function tryAccess(v, m=null) {
     
     function setupRefereeView(r, m) { 
         const cat = categories[currentCatIdx]; 
-        const matchKey = `m_${currentCatIdx}_${r}_${m}`;
-        // 접속 시 점유 등록
-        db.ref('activeMatches/' + matchKey).set({ referee: document.getElementById('ref-judge-name').value || "익명" });
-        // 페이지를 떠나거나 종료할 때 점유 해제하는 로직 필요
-        window.onbeforeunload = () => { db.ref('activeMatches/' + matchKey).remove(); };
+        const match = cat.rounds[r][m]; 
         activeM = { rIdx: r, mIdx: m, ...match }; 
         document.getElementById('ref-cat-name').innerText = cat.name; 
         document.getElementById('ref-stage-name').innerText = match.stage; 
@@ -559,19 +545,15 @@ function tryAccess(v, m=null) {
     
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     
-function createMatchBox(m, r, mi, isAdmin) {
-    const box = document.createElement('div');
-    // ...
-    // activeMatches를 구독하여 실시간으로 '진행 중' 표시 업데이트
-    const matchKey = `m_${currentCatIdx}_${r}_${mi}`;
-    db.ref('activeMatches/' + matchKey).on('value', (s) => {
-        if (s.exists()) {
-            box.style.border = "2px solid var(--red)";
-            box.innerHTML += `<div style="color:red; font-size:0.6rem;">진행중</div>`;
-        }
-    });
-    // ...
-}
+    function createMatchBox(m, r, mi, isAdmin) { 
+        const box = document.createElement('div'); box.className = "match-box"; 
+        box.onclick = () => { if(m.winner) showDetail(r, mi); else if(m.p1 && m.p2) tryAccess('referee', {cat:currentCatIdx, r, m:mi}); }; 
+        let p1_pre = m.redP ? (m.p1 === m.redP ? '<span class="prefix-r">R</span>' : '<span class="prefix-b">B</span>') : ""; 
+        let p2_pre = m.redP ? (m.p2 === m.redP ? '<span class="prefix-r">R</span>' : '<span class="prefix-b">B</span>') : ""; 
+        box.innerHTML = `<div>${p1_pre}${m.p1||'.'}</div><div>${p2_pre}${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;color:gray;">${m.score||'대기'}</div>`; 
+        if(isAdmin && m.winner) box.innerHTML += `<div style="color:red;text-align:right;font-size:0.6rem;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋</div>`; 
+        return box; 
+    }
 
     function renderBracketUI(id, isAdmin) { 
         const root = document.getElementById(id); if(!root) return; root.innerHTML = ""; 
