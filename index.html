@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v10.1</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -45,28 +45,30 @@
         @media (max-width: 768px) { .scoreboard-grid { grid-template-columns: 1fr; gap: 20px; } }
         
         /* 팀별 메인 컨테이너 박스 */
-        .team-section { border-radius: 12px; padding: 15px; color: white; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .team-section { border-radius: 12px; padding: 15px; color: white; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         .team-section.red { background: #d63031; border: 3px solid #b32d2e; }
         .team-section.blue { background: #2980b9; border: 3px solid #216a9c; }
         
-        /* 특징 1: 타이머와 start 버튼 일렬 수평 배치 구조 */
-        .timer-row-container { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .timer-top { font-size: 2.2rem; font-weight: bold; background: white; color: black; border-radius: 6px; padding: 2px 15px; min-width: 80px; text-align: center; font-family: monospace; line-height: 1.2; border: 2px solid #333; }
-        .start-btn { background: #e67e22; color: white; border: 2px solid #d35400; font-weight: bold; padding: 10px 16px; font-size: 1rem; border-radius: 6px; cursor: pointer; text-transform: uppercase; height: 100%; display: flex; align-items: center; }
-        .team-section.blue .start-btn { background: #f1c40f; color: black; border-color: #f39c12; }
+        /* 특징 1: 상단 참가자 정보와 타이머 영역의 수평 양끝 분할 배정 */
+        .team-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%; }
+        .player-info-box { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+        .player-name-title { font-size: 2rem; font-weight: 900; text-align: left; margin: 0; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .player-uid-sub { font-size: 1.1rem; font-weight: normal; opacity: 0.9; text-align: left; margin: 0; }
         
-        /* 특징 2: 참가자명 좌측 정렬 및 대형 200% 크기 고도화 */
-        .player-name-title { font-size: 2.4rem; font-weight: 900; text-align: left; margin-top: 5px; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
-        .player-uid-sub { font-size: 1.1rem; font-weight: normal; opacity: 0.85; text-align: left; margin-bottom: 10px; }
+        /* 타이머와 start 버튼 일렬 수평 배치 구조 */
+        .timer-row-container { display: flex; align-items: center; gap: 6px; }
+        .timer-top { font-size: 2rem; font-weight: bold; background: white; color: black; border-radius: 6px; padding: 2px 12px; min-width: 70px; text-align: center; font-family: monospace; line-height: 1.2; border: 1px solid #bbb; }
+        .start-btn { background: #f1c40f; color: black; border: 1px solid #bc9c10; font-weight: bold; padding: 6px 14px; font-size: 1rem; border-radius: 6px; cursor: pointer; text-transform: lowercase; height: 100%; display: flex; align-items: center; justify-content: center; }
         
-        /* 우측 상단 대형 점수판 배치 */
-        .score-display { font-size: 7.5rem; font-weight: bold; text-align: right; line-height: 1; margin: 5px 0; padding-right: 10px; font-family: sans-serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        /* 특징 2: 중앙 배치형 대형 점수판 컨테이너 구조 */
+        .score-box-container { background: rgba(0,0,0,0.15); border-radius: 10px; padding: 10px 0; text-align: center; margin-bottom: 15px; width: 100%; display: flex; justify-content: center; align-items: center; }
+        .score-display { font-size: 8.5rem; font-weight: bold; line-height: 1; margin: 0; font-family: sans-serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.15); }
         
         /* Hole, Board 수량 증감 카드 서브섹션 */
-        .sub-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; }
-        .sub-score-cell { display: flex; flex-direction: column; align-items: center; }
-        .sub-score-label { font-size: 1rem; margin-bottom: 5px; font-weight: bold; width: 100%; text-align: left; opacity: 0.9; text-transform: uppercase; }
-        .sub-score-value { font-size: 4rem; font-weight: bold; margin: 0px 0 5px 0; line-height: 1; font-family: sans-serif; }
+        .sub-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+        .sub-score-cell { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.06); padding: 12px; border-radius: 8px; }
+        .sub-score-label { font-size: 1rem; margin-bottom: 2px; font-weight: bold; width: 100%; text-align: left; opacity: 0.95; text-transform: lowercase; }
+        .sub-score-value { font-size: 4.5rem; font-weight: bold; margin: 5px 0; line-height: 1; font-family: sans-serif; }
         
         /* 특징 3: [ + ]와 [ - ]의 가로폭 비대칭 처리 (플러스 버튼이 마이너스의 2배 너비) */
         .btn-ctrl-group { display: flex; width: 100%; gap: 6px; }
@@ -75,29 +77,18 @@
         .count-btn-large.minus { flex: 1; } 
         .count-btn-large:active { background: #e0e0e0; transform: scale(0.97); }
         
-        /* [교정 완료] 하단 버튼 액션 영역 레이아웃 - 무조건 가로 분할 유지 */
+        /* 하단 버튼 액션 영역 레이아웃 - 무조건 가로 분할 유지 */
         .action-container { 
             display: grid; 
-            grid-template-columns: 1fr 1fr; /* 상단 스코어보드 RED/BLUE 칸과 완벽하게 일치하는 2분할 */
+            grid-template-columns: 1fr 1fr; 
             gap: 15px; 
             margin-bottom: 20px; 
             width: 100%;
         }
         
-        /* 왼쪽 영역: 라운드 결과 확정 버튼 (RED 칸 넓이 100% 대응) */
-        .action-left-zone {
-            width: 100%;
-        }
+        .action-left-zone { width: 100%; }
+        .action-right-zone { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
         
-        /* 오른쪽 영역: 버튼 3개 묶음 (BLUE 칸 내부에서 정확히 1/3 분할 가로 정렬) */
-        .action-right-zone {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 모바일에서도 세로 정렬 없이 가로 3열 유지 */
-            gap: 6px;
-            width: 100%;
-        }
-        
-        /* 특징 4: 대형 라운드 결과 확정 버튼 설계 */
         .btn-confirm-round { 
             background: #00b894; 
             color: white; 
@@ -107,26 +98,26 @@
             border-radius: 8px; 
             cursor: pointer; 
             padding: 0 10px; 
-            height: 60px; /* 버튼 높이 일치 */
+            height: 60px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
             width: 100%;
-            white-space: nowrap; /* 글자 자동 줄바꿈 방지 */
+            white-space: nowrap; 
         }
         .btn-confirm-round:active { background: #009475; }
         
         .btn-action-side { 
             background: #95a5a6; 
             color: white; 
-            font-size: 0.85rem; /* 3분의 1 정렬 내부 가독성 크기 최적화 */
+            font-size: 0.85rem; 
             font-weight: bold; 
             border: none; 
             border-radius: 8px; 
             cursor: pointer; 
             padding: 0 2px; 
-            height: 60px; /* 확정 버튼과 높이 동일 통일 */
+            height: 60px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -151,11 +142,6 @@
         .code-input { padding: 12px; font-size: 1.3rem; border: 2px solid var(--dark); border-radius: 10px; width: 100%; max-width: 300px; text-align: center; margin-bottom: 15px; }
         .warning { color: #ffeaa7 !important; background: #ff7675 !important; animation: blink 0.5s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
-
-        /* 모바일 모드 미디어 쿼리 - 간섭 및 수직 정렬 코드 제거 완료 */
-        @media (max-width: 768px) { 
-            /* 가로 분할 배치를 무조건 유지하기 위해 기존 세로 정렬(1fr 처리) 코드를 강제 탈락시켰습니다. */
-        }
     </style>
 </head>
 <body>
@@ -212,13 +198,20 @@
                 <div class="scoreboard-grid">
                     
                     <div class="team-section red">
-                        <div class="timer-row-container">
-                            <div id="timer-red" class="timer-top">15</div>
-                            <button class="start-btn" onclick="tStart('red')">start</button>
+                        <div class="team-header-row">
+                            <div class="player-info-box">
+                                <div class="player-name-title" id="red-name-label">참가자명</div>
+                                <div class="player-uid-sub" id="red-uid-label">(고유번호)</div>
+                            </div>
+                            <div class="timer-row-container">
+                                <div id="timer-red" class="timer-top">15</div>
+                                <button class="start-btn" onclick="tStart('red')">start</button>
+                            </div>
                         </div>
-                        <div class="player-name-title" id="red-name-label">참가자명</div>
-                        <div class="player-uid-sub" id="red-uid-label">(고유번호)</div>
-                        <div id="ref-red-total" class="score-display">0</div>
+                        
+                        <div class="score-box-container">
+                            <div id="ref-red-total" class="score-display">0</div>
+                        </div>
                         
                         <div class="sub-score-grid">
                             <div class="sub-score-cell">
@@ -233,21 +226,28 @@
                                 <span class="sub-score-label">board (1)</span>
                                 <span id="r1-q" class="sub-score-value">0</span>
                                 <div class="btn-ctrl-group">
-                                    <button class="count-btn-large plus" onclick="adj('r',1,1)">+</button>
                                     <button class="count-btn-large minus" onclick="adj('r',1,-1)">-</button>
+                                    <button class="count-btn-large plus" onclick="adj('r',1,1)">+</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="team-section blue">
-                        <div class="timer-row-container">
-                            <div id="timer-blue" class="timer-top">15</div>
-                            <button class="start-btn" onclick="tStart('blue')">start</button>
+                        <div class="team-header-row">
+                            <div class="player-info-box">
+                                <div class="player-name-title" id="blue-name-label">참가자명</div>
+                                <div class="player-uid-sub" id="blue-uid-label">(고유번호)</div>
+                            </div>
+                            <div class="timer-row-container">
+                                <div id="timer-blue" class="timer-top">15</div>
+                                <button class="start-btn" onclick="tStart('blue')">start</button>
+                            </div>
                         </div>
-                        <div class="player-name-title" id="blue-name-label">참가자명</div>
-                        <div class="player-uid-sub" id="blue-uid-label">(고유번호)</div>
-                        <div id="ref-blue-total" class="score-display">0</div>
+                        
+                        <div class="score-box-container">
+                            <div id="ref-blue-total" class="score-display">0</div>
+                        </div>
                         
                         <div class="sub-score-grid">
                             <div class="sub-score-cell">
@@ -262,8 +262,8 @@
                                 <span class="sub-score-label">board (1)</span>
                                 <span id="b1-q" class="sub-score-value">0</span>
                                 <div class="btn-ctrl-group">
-                                    <button class="count-btn-large plus" onclick="adj('b',1,1)">+</button>
                                     <button class="count-btn-large minus" onclick="adj('b',1,-1)">-</button>
+                                    <button class="count-btn-large plus" onclick="adj('b',1,1)">+</button>
                                 </div>
                             </div>
                         </div>
@@ -340,14 +340,12 @@
     const db = firebase.database();
     let hqAuth = localStorage.getItem('kca_hq_code') || "1234", refAuth = localStorage.getItem('kca_ref_code') || "1234", pendingV = "", pendingMatch = null, categories = [], currentCatIdx = 0, refS = {red:0, blue:0}, refI = {r3:0, r1:0, b3:0, b1:0}, tRef = null, rLog = [], activeM = null, tournamentName = "데이터 실시간 통합", isTimerRunning = false;
     
-    // [작업 지시서 추가 변수] 전역 점유 관리 변수 선언
     let currentMatchKey = null;
     let activeMatchesData = {};
 
     db.ref('kca_tournament').on('value', (s) => { categories = s.val() || []; calcStats(); renderTabs(); refreshUIs(); });
     db.ref('kca_info/name').on('value', (s) => { tournamentName = s.val() || "데이터 실시간 통합"; updateTitleUIs(); });
     
-    // [UI/UX 개선] 대진표의 실시간 activeMatches 데이터베이스 구조 구독 설정
     db.ref('activeMatches').on('value', (s) => {
         activeMatchesData = s.val() || {};
         refreshUIs();
@@ -485,20 +483,17 @@
         db.ref('kca_tournament').set(categories).then(() => { alert("대진표가 생성되었습니다."); refreshUIs(); });
     }
     
-    // [심판 접속 제어 로직] setupRefereeView 함수 내 점유 구조 등록 및 onDisconnect 처리
     function setupRefereeView(r, m) { 
         const cat = categories[currentCatIdx]; 
         const match = cat.rounds[r][m]; 
         activeM = { rIdx: r, mIdx: m, ...match }; 
         
-        // 고유 경기 키 설정 및 데이터베이스 점유 상태 등록
         currentMatchKey = "m_" + currentCatIdx + "_" + r + "_" + m;
         const judgeName = document.getElementById('ref-judge-name').value || "지정심판";
         db.ref('activeMatches/' + currentMatchKey).set({
             referee: judgeName,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        // 네트워크 끊김 또는 웹 창 강제 종료 시 실시간 자동 삭제 처리 예약
         db.ref('activeMatches/' + currentMatchKey).onDisconnect().remove();
 
         document.getElementById('ref-cat-name').innerText = cat.name; 
@@ -539,7 +534,6 @@
         }
     }
 
-    // [명시적 점유 해제 로직] 경기 종료에 따른 점유 제거 처리 연동
     function finishMatchAuto() { 
         const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
         const finalR = Math.min(refS.red, 21);
@@ -552,7 +546,6 @@
         m.court = document.getElementById('ref-court-num').value; 
         pushNext(activeM.rIdx, activeM.mIdx, m.winner); 
         
-        // 최종 종료 완료 시 점유 데이터 파괴 및 초기화
         if (currentMatchKey) {
             db.ref('activeMatches/' + currentMatchKey).remove();
             currentMatchKey = null;
@@ -561,7 +554,6 @@
         db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); 
     }
 
-    // [나가기 기능 구현] exitRefereeView 신규 구현 로직
     function exitRefereeView() {
         if (currentMatchKey) {
             db.ref('activeMatches/' + currentMatchKey).remove();
@@ -589,11 +581,9 @@
     
     function refreshUIs() { renderBracketUI('bracket-public', false); renderBracketUI('bracket-admin', true); renderRankUI('rank-body-public'); renderRankUI('rank-body-admin'); }
     
-    // [접속 차단 및 UI 피드백 구조 설계] createMatchBox 함수 전면 개편
     function createMatchBox(m, r, mi, isAdmin) { 
         const box = document.createElement('div'); box.className = "match-box"; 
         
-        // 실시간 점유 식별 키 대조 정의
         const matchKey = "m_" + currentCatIdx + "_" + r + "_" + mi;
         const isOccupied = activeMatchesData && activeMatchesData[matchKey];
 
@@ -601,7 +591,6 @@
             if(m.winner) {
                 showDetail(r, mi); 
             } else if(m.p1 && m.p2) {
-                // [접속 차단 로직] 타 심판이 사용 중인 매치 수순 차단 제어
                 if(isOccupied) {
                     alert("이미 진행 중입니다");
                     return;
@@ -613,7 +602,6 @@
         let p2_pre = m.redP ? (m.p2 === m.redP ? '<span class="prefix-r">R</span>' : '<span class="prefix-b">B</span>') : ""; 
         box.innerHTML = `<div>${p1_pre}${m.p1||'.'}</div><div>${p2_pre}${m.p2||'.'}</div><div style="font-size:0.7rem;text-align:center;color:gray;">${m.score||'대기'}</div>`; 
         
-        // [진행 상황 표시 UI] 실시간 점유 및 진행 감지 시 테두리 도색 및 진행 중 실시간 태그 표시
         if(isOccupied && !m.winner) {
             box.style.borderColor = "var(--red)";
             box.innerHTML += `<div style="color:var(--red); font-weight:bold; font-size:0.75rem; text-align:center; margin-top:2px;">● 진행 중</div>`;
@@ -743,7 +731,6 @@
         rd.readAsArrayBuffer(e.target.files[0]); 
     });
 
-    // [비정상 종료 대비] 브라우저 강제 종료 및 탭 닫기 시 즉각적인 점유 해제를 위한 보조 이벤트 구성
     window.addEventListener('beforeunload', () => {
         if (currentMatchKey) {
             db.ref('activeMatches/' + currentMatchKey).remove();
