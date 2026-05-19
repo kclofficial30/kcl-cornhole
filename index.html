@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10.20</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v10.30</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -328,11 +328,11 @@
     function calcStats() {
         categories.forEach(cat => {
             const isLeague = cat.rounds && cat.rounds[0] && cat.rounds[0][0].stage === "리그전";
-            const mode34 = cat.thref_mode || "match"; // 기본값 match
+            const mode34 = cat.thref_mode || "match"; 
             cat.stats = {}; 
             cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"진행 중", rankVal:0, matches:[]});
             
-            let semiLosers = []; // 2번 데이터 결정 방식을 위한 4강 패자 저장소
+            let semiLosers = []; 
 
             if(cat.rounds) cat.rounds.forEach(round => round.forEach(m => { if(m.winner && m.score.includes(':')) {
                 const s = m.score.split(':').map(Number);
@@ -362,7 +362,6 @@
                         if(m.stage==="결승전"){ cat.stats[lP].status="🥈 준우승"; cat.stats[lP].rankVal=80;} 
                         else if(m.stage==="3·4위전" && mode34 === "match"){ cat.stats[lP].status="4위"; cat.stats[lP].rankVal=40;} 
                         else if(m.stage==="4강" && mode34 === "data") {
-                            // 2번 데이터 모드일 때는 4강 패자들을 따로 모아서 추후 일괄 정산
                             semiLosers.push(lP);
                         }
                         else { cat.stats[lP].status=m.stage+" 탈락"; }
@@ -370,7 +369,6 @@
                 }
             }}));
 
-            // [하이브리드 2번 기록정산 정밀 로직]: 3·4위전 경기가 없고 4강 패자가 도출되었을 때 데이터 판독 및 순위 강제 배정
             if(mode34 === "data" && semiLosers.length >= 2) {
                 const p1 = semiLosers[0], p2 = semiLosers[1];
                 const score1 = cat.stats[p1].win * 10000 + cat.stats[p1].diff;
@@ -383,7 +381,6 @@
                     cat.stats[p1].status = "4위"; cat.stats[p1].rankVal = 40;
                 }
             } else if(mode34 === "data" && semiLosers.length === 1) {
-                // 1명만 먼저 졌을 때 임시 상태 유도
                 cat.stats[semiLosers[0]].status = "4강전 패배 (정산대기)"; cat.stats[semiLosers[0]].rankVal = 45;
             }
         });
@@ -392,10 +389,10 @@
     function makeBracketsAndCloud() {
         if (!categories.length) return alert("명단을 로드하세요.");
         const mode = document.getElementById('assign-mode').value;
-        const thMode = document.getElementById('thref-mode').value; // match 또는 data
+        const thMode = document.getElementById('thref-mode').value; 
         
         categories.forEach(cat => {
-            cat.thref_mode = thMode; // 데이터 구조 보존
+            cat.thref_mode = thMode; 
             let list = [...cat.players];
             if (mode === 'random') {
                 list.sort(() => Math.random() - 0.5); 
@@ -468,11 +465,9 @@
                     lastL /= 2; let nextR = []; 
                     if (lastL * 2 === 2) {
                         if(thMode === "match") {
-                            // 1번 매치 분기: 결승전 및 3·4위전을 동시 출력 구조화
                             nextR.push({p1:"", p2:"", winner:null, score:"", stage:"결승전"});
                             nextR.push({p1:"", p2:"", winner:null, score:"", stage:"3·4위전"});
                         } else {
-                            // 2번 기록 정산 분기: 깨끗하게 결승전 1개만 매치 셋업
                             nextR.push({p1:"", p2:"", winner:null, score:"", stage:"결승전"});
                         }
                     } else {
@@ -569,12 +564,10 @@
             if(!isP2) nextR[targetIdx].p1 = w; else nextR[targetIdx].p2 = w; 
         } else { 
             let nm = Math.floor(m/2); 
-            if(m Alb === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; 
+            if(m % 2 === 0) nextR[nm].p1 = w; else nextR[nm].p2 = w; 
             
-            // 4강전 탈락 분기 제어 트래킹
             if (curMatch.stage === "4강") {
                 const loser = (w === curMatch.p1) ? curMatch.p2 : curMatch.p1;
-                // 1번 매칭 모드일때만 패자를 3·4위전 보드로 전송 조치
                 if (mode34 === "match" && nextR[1]) {
                     if(m % 2 === 0) nextR[1].p1 = loser; else nextR[1].p2 = loser;
                 }
