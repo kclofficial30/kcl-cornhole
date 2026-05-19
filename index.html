@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v11.1</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v11.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -290,15 +290,20 @@
 <footer class="main-footer">
     <img src="https://www.cornhole.kr/html/img/logo.png" alt="KCA" class="footer-logo"><br>
     © 2026 한국콘홀협회 (KCA). All Rights Reserved.<br>
-    <div class="dev-credit">Developed by 최윤정 | 데이터 실시간 통합 v10.20</div>
+    <div class="dev-credit">Developed by 최윤정 | 데이터 실시간 통합 v11.0</div>
 </footer>
 
 <div id="detail-modal" class="overlay" onclick="closeDetail()"><div class="modal" onclick="event.stopPropagation()"><h3>📋 경기 상세 결과</h3><div id="detail-content" style="text-align:left; font-size:0.85rem; line-height:1.6;"></div><button class="btn btn-dark" style="margin-top:20px;" onclick="closeDetail()">닫기</button></div></div>
 
 <div id="live-board-modal" class="overlay" onclick="closeLiveDetail()">
-    <div class="modal" style="max-width:100%; width:100vw; height:100vh; padding:15px; border-radius:0; display:flex; flex-direction:column; background:#111; box-sizing:border-box;" onclick="event.stopPropagation()">
-        <div id="live-board-content" style="flex:1; display:flex; flex-direction:column; height:100%;"></div>
-        <button class="btn btn-dark" style="margin-top:10px; padding:20px; font-size:1.5rem; background:var(--gray); flex-shrink:0;" onclick="closeLiveDetail()">전광판 닫기</button>
+    <div class="modal" style="max-width:100%; width:100vw; height:100vh; padding:2vh 2vw; border-radius:0; display:flex; flex-direction:column; background:#111; box-sizing:border-box; position:relative;" onclick="event.stopPropagation()">
+        
+        <button onclick="closeLiveDetail()" style="position:absolute; top:20px; right:20px; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.4); color:#fff; font-size:32px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,0.5); transition:background 0.2s;" onmouseover="this.style.background='rgba(214,48,49,0.9)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            ✕
+        </button>
+
+        <div id="live-board-content" style="flex:1; display:flex; flex-direction:column; height:100%; justify-content:center;"></div>
+        
     </div>
 </div>
 <script>
