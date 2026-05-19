@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10.20</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v10.30</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -70,11 +70,11 @@
         .sub-score-label { font-size: 1rem; margin-bottom: 2px; font-weight: bold; width: 100%; text-align: left; opacity: 0.95; text-transform: lowercase; }
         .sub-score-value { font-size: 4.5rem; font-weight: bold; margin: 5px 0; line-height: 1; font-family: sans-serif; }
         
-        /* [교정 핵심] [ + ]와 [ - ]의 순서 고정 및 가로폭 비대칭 처리 (플러스 버튼이 마이너스의 2배 너비) */
+        /* [ + ]와 [ - ]의 순서 고정 및 가로폭 비대칭 처리 */
         .btn-ctrl-group { display: flex; width: 100%; gap: 6px; }
         .count-btn-large { border: none; border-radius: 6px; background: white; color: black; font-size: 2.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.2); height: 55px; transition: transform 0.1s, background-color 0.1s; }
-        .count-btn-large.plus { flex: 2; } /* 플러스 버튼 너비 2배 점유 */
-        .count-btn-large.minus { flex: 1; } /* 마이너스 버튼 너비 1배 점유 */
+        .count-btn-large.plus { flex: 2; } 
+        .count-btn-large.minus { flex: 1; } 
         .count-btn-large:active { background: #e0e0e0; transform: scale(0.97); }
         
         /* 하단 버튼 액션 영역 레이아웃 */
@@ -149,9 +149,9 @@
             <div id="ref-side-zone" style="background:#fffbe6; padding:20px; border-radius:12px; border:2px dashed #ffe58f; margin-bottom:15px; text-align:center;">
                 <p style="margin-bottom:15px; font-weight:bold; font-size:1.1rem;">🎲 경기 진영 배정</p>
                 <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
-                    <select id="sel-red-p" onchange="syncSides('red')" style="width:42%; padding:12px; border-radius:8px; border:2px solid var(--red); font-weight:bold; font-size:1rem;"></select>
+                    <select id="sel-red-p" onchange="syncSides('red')" style="width:42%; padding:12px; border-radius:8px; border:2px solid var(--red); font-weight:bold; font-size:1rem);"></select>
                     <b style="font-size:1.2rem;">VS</b>
-                    <select id="sel-blue-p" onchange="syncSides('blue')" style="width:42%; padding:12px; border-radius:8px; border:2px solid var(--blue); font-weight:bold; font-size:1rem;"></select>
+                    <select id="sel-blue-p" onchange="syncSides('blue')" style="width:42%; padding:12px; border-radius:8px; border:2px solid var(--blue); font-weight:bold; font-size:1rem);"></select>
                 </div>
             </div>
             
@@ -282,12 +282,12 @@
 
     <section id="view-lock" class="view-section">
         <div class="kca-card" style="display: flex; flex-direction: column; align-items: center; padding: 50px 15px;">
-    <h2 id="lock-title">코드 입력</h2>
-    <input type="password" id="code-val" class="code-input" placeholder="CODE">
-    <button class="btn btn-dark" style="width: 200px;" onclick="verifyCode()">인증하기</button>
-</div>
-
-<footer class="main-footer">
+            <h2 id="lock-title">코드 입력</h2>
+            <input type="password" id="code-val" class="code-input" placeholder="CODE">
+            <button class="btn btn-dark" style="width: 200px;" onclick="verifyCode()">인증하기</button>
+        </div>
+    </section>
+</div> <footer class="main-footer">
     <img src="https://www.cornhole.kr/html/img/logo.png" alt="KCA" class="footer-logo"><br>
     © 2026 한국콘홀협회 (KCA). All Rights Reserved.<br>
     <div class="dev-credit">Developed by 최윤정 | 데이터 실시간 통합 v9.4.final</div>
@@ -550,7 +550,10 @@
 
         box.onclick = () => { 
             if(m.winner) {
-                showDetail(r, mi); 
+                // 실시간 대진표(Public) 상태일 때만 경기 상세결과 팝업 활성화
+                if (!isAdmin) {
+                    showDetail(r, mi); 
+                }
             } else if(m.p1 && m.p2) {
                 if(isOccupied) {
                     alert("이미 진행 중입니다");
