@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10.30</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v10.40</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -269,6 +269,7 @@
                 <b>🎯 경기 방식 선택:</b>
                 <select id="assign-mode" style="padding:10px; border-radius:8px; font-weight:bold;">
                     <option value="rank_versus">🏆 랭킹 배정 (토너먼트)</option>
+                    <option value="snake_versus">🐍 스네이크 배정 (1순위 vs 최하위)</option>
                     <option value="random">🎲 랜덤 배정 (토너먼트)</option>
                     <option value="full_league">🏟️ 풀토너먼트 (종목별 리그전)</option>
                 </select>
@@ -391,7 +392,6 @@
                 cat.stats[m.winner].win++; 
                 cat.stats[m.winner].diff += diff;
                 
-                // 승자 경기 이력 및 단일 경기 득실 기록
                 const oppOfWin = m.winner === m.redP ? m.blueP : m.redP;
                 if(cat.stats[m.winner]) {
                     cat.stats[m.winner].matches.push({ stage: m.stage, opponent: oppOfWin, myScore: winS, oppScore: lossS, diff: diff });
@@ -403,7 +403,6 @@
                     cat.stats[lP].loss++; 
                     cat.stats[lP].diff -= diff; 
                     
-                    // 패자 경기 이력 및 단일 경기 득실 기록 (-값)
                     cat.stats[lP].matches.push({ stage: m.stage, opponent: m.winner, myScore: lossS, oppScore: winS, diff: -diff });
                     
                     if(!isLeague) { if(m.stage==="결승전"){ cat.stats[lP].status="준우승"; cat.stats[lP].rankVal=50;} else cat.stats[lP].status=m.stage+" 탈락"; } 
@@ -417,8 +416,47 @@
         const mode = document.getElementById('assign-mode').value;
         categories.forEach(cat => {
             let list = [...cat.players];
-            if (mode === 'random') list.sort(() => Math.random() - 0.5); 
-            else list.sort((a,b) => (Number(a.랭킹)||99) - (Number(b.랭킹)||99));
+            if (mode === 'random') {
+                list.sort(() => Math.random() - 0.5); 
+            } else if (mode === 'snake_versus') {
+                // 1차적으로 랭킹 순 정렬 (1등이 최상단)
+                list.sort((a,b) => (Number(a.랭킹)||99) - (Number(b.랭킹)||99));
+                const N = list.length;
+                if (N >= 2) {
+                    let p2 = 1; while (p2 * 2 <= N) p2 *= 2; 
+                    const preN = N - p2; 
+                    
+                    if (preN > 0) {
+                        // 부전승 존재: 부전승 권한은 무조건 상위시드가 유지하도록 안전하게 미리 격리
+                        const byeCount = N - (preN * 2);
+                        let byePlayers = list.slice(0, byeCount);
+                        let normalPlayers = list.slice(byeCount);
+                        
+                        // 예선전을 치를 나머지 그룹 선수들만 스네이크 매칭 (상위 vs 최하위)
+                        let snakeNormal = [];
+                        let left = 0, right = normalPlayers.length - 1;
+                        while (left <= right) {
+                            if (left === right) { snakeNormal.push(normalPlayers[left]); }
+                            else { snakeNormal.push(normalPlayers[left]); snakeNormal.push(normalPlayers[right]); }
+                            left++; right--;
+                        }
+                        // 상위 시드 부전승 선수들 뒤로 정렬 데이터 조립
+                        list = [...byePlayers, ...snakeNormal];
+                    } else {
+                        // 부전승 없음 (딱 맞아떨어지는 4/8/16/32강): 전체 스네이크 정렬
+                        let snakeAll = [];
+                        let left = 0, right = list.length - 1;
+                        while (left <= right) {
+                            if (left === right) { snakeAll.push(list[left]); }
+                            else { snakeAll.push(list[left]); snakeAll.push(list[right]); }
+                            left++; right--;
+                        }
+                        list = snakeAll;
+                    }
+                }
+            } else {
+                list.sort((a,b) => (Number(a.랭킹)||99) - (Number(b.랭킹)||99));
+            }
             
             cat.rounds = [];
             if (mode === 'full_league') {
@@ -624,7 +662,6 @@
         });
     }
 
-    // [신규 기능] 대회 순위 페이지에서 득실차 클릭 시 매치별 득실 세부 내역 팝업 호출
     function showPlayerDiffDetail(playerName) {
         const cat = categories[currentCatIdx];
         const pStats = cat.stats[playerName];
