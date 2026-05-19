@@ -577,38 +577,53 @@
     }
 
     // [버그 교정] 심판진 진영 변경 시 파이어베이스 및 데이터 변수 즉각 강제 오버라이딩 적용
-    function syncSides(s) { 
-        const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); 
-        if(!s1.value || !s2.value) {
-            if(s==='red') s2.value=(s1.value===activeM.p1?activeM.p2:activeM.p1); 
-            else s1.value=(s2.value===activeM.p1?activeM.p2:activeM.p1); 
-        }
-        if(s1.value && s2.value){ 
-            activeM.redP=s1.value; activeM.blueP=s2.value; 
-            document.getElementById('ref-side-zone').style.display='none'; 
-            document.getElementById('ref-engine-ui').style.display='block'; 
-            parseNameToLabel('red', s1.value);
-            parseNameToLabel('blue', s2.value);
-            if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).update({ redP: s1.value, blueP: s2.value }); }
-        } 
+function syncSides(s) { 
+    const s1 = document.getElementById('sel-red-p'), s2 = document.getElementById('sel-blue-p'); 
+    
+    // 상대 진영 자동 보정
+    if(!s1.value || !s2.value) {
+        if(s === 'red') s2.value = (s1.value === activeM.p1 ? activeM.p2 : activeM.p1); 
+        else s1.value = (s2.value === activeM.p1 ? activeM.p2 : activeM.p1); 
     }
+    
+    if(s1.value && s2.value){ 
+        activeM.redP = s1.value; activeM.blueP = s2.value; 
+        document.getElementById('ref-side-zone').style.display = 'none'; 
+        document.getElementById('ref-engine-ui').style.display = 'block'; 
+        
+        // [교정] 여기서 전체 값(팀명+고유번호)을 라벨에 뿌려줌
+        document.getElementById('red-name-label').innerText = s1.value;
+        document.getElementById('blue-name-label').innerText = s2.value;
+        
+        // 고유번호 부분은 이미 팀명에 포함되어 있으므로 타이틀 영역을 깔끔하게 유지
+        document.getElementById('red-uid-label').innerText = "";
+        document.getElementById('blue-uid-label').innerText = "";
 
+        if (currentMatchKey) { 
+            db.ref('activeMatches/' + currentMatchKey).update({ redP: s1.value, blueP: s2.value }); 
+        }
+    } 
+}
     // [버그 교정] 경기 최종 전송 시 최초 정렬인 p1, p2 대신 심판이 선택 가공한 진영 데이터(redP, blueP) 우선 정착
     function finishMatchAuto() { 
-        const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
-        const finalR = Math.min(refS.red, 21);
-        const finalB = Math.min(refS.blue, 21);
-        m.winner = refS.red > refS.blue ? activeM.redP : activeM.blueP; 
-        m.score = `${finalR}:${finalB}`; 
-        m.redP = activeM.redP; m.blueP = activeM.blueP; 
-        m.history = [...rLog]; 
-        m.judge = document.getElementById('ref-judge-name').value; 
-        m.court = document.getElementById('ref-court-num').value; 
-        pushNext(activeM.rIdx, activeM.mIdx, m.winner); 
-        
-        if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); currentMatchKey = null; }
-        db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); 
-    }
+    const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
+    const finalR = Math.min(refS.red, 21);
+    const finalB = Math.min(refS.blue, 21);
+    
+    // 심판이 최종 확정한 activeM.redP(팀명+고유번호)를 우승자/기록으로 저장
+    m.winner = refS.red > refS.blue ? activeM.redP : activeM.blueP; 
+    m.score = `${finalR}:${finalB}`; 
+    m.redP = activeM.redP; 
+    m.blueP = activeM.blueP; 
+    m.history = [...rLog]; 
+    m.judge = document.getElementById('ref-judge-name').value; 
+    m.court = document.getElementById('ref-court-num').value; 
+    
+    pushNext(activeM.rIdx, activeM.mIdx, m.winner); 
+    
+    if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); currentMatchKey = null; }
+    db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); 
+}
 
     function exitRefereeView() {
         if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); currentMatchKey = null; }
