@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10.50</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v10.60</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -308,7 +308,7 @@
     function submitRoundRef() {
         const rs = refI.r3*3 + refI.r1, bs = refI.b3*3 + refI.b1, diff = rs-bs, rg = diff>0?diff:0, bg = diff<0?Math.abs(diff):0;
         refS.red += rg; refS.blue += bg;
-        rLog.push({ round: rLog.length+1, r: rg, b: bg, r_orig: rs, b_orig: bs, r3: refI.r3, r1: refI.r1, b3: refI.b3, b1: refI.b1 });
+        rLog.push({ round: rLog.length+1, r: rg, b: bg, r_orig: rs, b_orig: bs, r3: refI.r3, r1: refI.r1, b3: refI.b3, b1: refI.b1, redP: activeM.redP, blueP: activeM.blueP });
         updateRefUI();
         const row = document.getElementById('ref-hist-body').insertRow(-1); 
         row.innerHTML = `<td style="color:#d63031; width:35%;">${rg}점</td><td style="color:#666; width:30%;">${rLog.length} R</td><td style="color:#2980b9; width:35%;">${bg}점</td>`;
@@ -321,7 +321,7 @@
     function declareWalkover(team) {
         if(!confirm(team.toUpperCase() + "팀의 기권을 선언하시겠습니까?")) return;
         if(team === 'red') { refS.red = 0; refS.blue = 21; } else { refS.red = 21; refS.blue = 0; }
-        rLog.push({ round: "기권", r: refS.red, b: refS.blue, r_orig: refS.red, b_orig: refS.blue });
+        rLog.push({ round: "기권", r: refS.red, b: refS.blue, r_orig: refS.red, b_orig: refS.blue, redP: activeM.redP, blueP: activeM.blueP });
         finishMatchAuto();
     }
 
@@ -344,7 +344,7 @@
                 
                 const oppOfWin = m.winner === m.redP ? m.blueP : m.redP;
                 if(cat.stats[m.winner]) {
-                    cat.stats[m.winner].matches.push({ stage: m.stage, opponent: oppOfWin, myScore: winS, oppScore: lossS, diff: diff });
+                    cat.stats[m.winner].matches.push({ stage: m.stage, opponent: oppOfWin, myScore: winS, oppScore: lossS, diff: diff, history: m.history || [], judge: m.judge, court: m.court, isWin: true });
                 }
 
                 if(!isLeague) {
@@ -356,7 +356,7 @@
                 if(cat.stats[lP]) { 
                     cat.stats[lP].loss++; 
                     cat.stats[lP].diff -= diff; 
-                    cat.stats[lP].matches.push({ stage: m.stage, opponent: m.winner, myScore: lossS, oppScore: winS, diff: -diff });
+                    cat.stats[lP].matches.push({ stage: m.stage, opponent: m.winner, myScore: lossS, oppScore: winS, diff: -diff, history: m.history || [], judge: m.judge, court: m.court, isWin: false });
                     
                     if(!isLeague) { 
                         if(m.stage==="결승전"){ cat.stats[lP].status="🥈 준우승"; cat.stats[lP].rankVal=80;} 
@@ -667,65 +667,118 @@
         document.getElementById('detail-modal').style.display = 'flex';
     }
 
-    function undoRoundRef() { if (!rLog.length) return alert("기록 없음"); const last = rLog.pop(); refS.red -= last.r; refS.blue -= last.b; updateRefUI(); document.getElementById('ref-hist-body').deleteRow(document.getElementById('ref-hist-body').rows.length - 1); }
-    function updateRefUI() { document.getElementById('ref-red-total').innerText = refS.red; document.getElementById('ref-blue-total').innerText = refS.blue; }
-    function showDetail(r, m) { const match = categories[currentCatIdx].rounds[r][m]; let hist = (match.history || []).map(h => `${h.round}R: ${h.r}:${h.b}`).join('<br>'); document.getElementById('detail-content').innerHTML = `<b>${match.stage}</b><br>${match.redP} vs ${match.blueP}<hr>${hist}`; document.getElementById('detail-modal').style.display = 'flex'; }
-    function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
-    function renderTabs() { ['cat-tabs-public', 'cat-tabs-rank', 'cat-tabs-admin'].forEach(id => { const div = document.getElementById(id); if(!div) return; div.innerHTML = ""; categories.forEach((cat, i) => { const t = document.createElement('div'); t.className = `cat-tab ${i === currentCatIdx ? 'active' : ''}`; t.innerText = cat.name; t.onclick = () => { currentCatIdx = i; renderTabs(); refreshUIs(); }; div.appendChild(t); }); }); }
-    
-    // [엑셀 다운로드 엔진 전면 리팩토링]: 1경기 = 1행 매칭 요약 스코어보드 데이터셋 빌드
+    // [최종 엑셀 개인기록 중심 최적화 리팩토링]: 진영(색상) 무력화, 종목별 시트 내 선수 개인별 통계 카드 정교화
     function downloadTournamentData() { 
         if (!categories.length) return alert("데이터 없음"); 
         const wb = XLSX.utils.book_new(); 
         
-        categories.forEach(cat => { 
-            if(!cat.rounds) return; 
-            const catMatchData = [];
+        categories.forEach(cat => {
+            if(!cat.stats || !cat.rounds) return;
+            const isLeague = cat.rounds && cat.rounds[0] && cat.rounds[0][0].stage === "리그전";
+            
+            const sheetRows = [];
 
-            cat.rounds.forEach(round => round.forEach(m => { 
-                if(m.winner && m.score) {
-                    // 라운드 히스토리 추적을 통한 각 팀별 홀(3점), 보드(1점) 총 투구 수 집계 계산
-                    let totalRedHoles = 0, totalRedBoards = 0;
-                    let totalBlueHoles = 0, totalBlueBoards = 0;
-                    
-                    if(m.history && m.history.length > 0) {
-                        m.history.forEach(h => {
-                            totalRedHoles += (h.r3 || 0);
-                            totalRedBoards += (h.r1 || 0);
-                            totalBlueHoles += (h.b3 || 0);
-                            totalBlueBoards += (h.b1 || 0);
-                        });
-                    }
+            // --- SECTION 1: 종목 마스터 순위표 ---
+            sheetRows.push({ "🏆 K-CORNHOLE 데이터 센터": `[${cat.name}] 종목 최종 공식 순위표` });
+            sheetRows.push({}); 
 
-                    const redInfo = parseNameAndUid(m.redP);
-                    const blueInfo = parseNameAndUid(m.blueP);
+            const sortedRankList = Object.keys(cat.stats).map(name => ({name, ...cat.stats[name]})).sort((a,b) => {
+                if(!isLeague && b.rankVal !== a.rankVal) return b.rankVal - a.rankVal;
+                return b.win - a.win || b.diff - a.diff;
+            });
 
-                    // 1매치 = 1줄 형태의 완벽한 스코어 표 구성
-                    catMatchData.push({
-                        "진행단계": m.stage,
-                        "코트": m.court || "미지정",
-                        "RED 참가자": redInfo.name,
-                        "RED 고유번호": redInfo.uid,
-                        "결과(RED)": (m.winner === m.redP ? "승" : "패"),
-                        "최종 스코어": m.score,
-                        "결과(BLUE)": (m.winner === m.blueP ? "승" : "패"),
-                        "BLUE 참가자": blueInfo.name,
-                        "BLUE 고유번호": blueInfo.uid,
-                        "지정심판": m.judge || "지정 안 됨",
-                        "RED 총 홀수(H)": totalRedHoles,
-                        "RED 총 보드수(B)": totalRedBoards,
-                        "BLUE 총 홀수(H)": totalBlueHoles,
-                        "BLUE 총 보드수(B)": totalBlueBoards
+            sortedRankList.forEach((p, idx) => {
+                const pInfo = parseNameAndUid(p.name);
+                const totalGames = p.win + p.loss;
+                const winRate = totalGames > 0 ? ((p.win / totalGames) * 100).toFixed(1) + "%" : "0.0%";
+                // 승리 매치당 3포인트, 패배 매치당 1포인트 기본 계산 연산식
+                const calculatedPoints = (p.win * 3) + (p.loss * 1);
+
+                sheetRows.push({
+                    "최종 순위": (idx + 1) + "위",
+                    "참가자명": pInfo.name,
+                    "고유번호": pInfo.uid,
+                    "대회진행상태": p.status,
+                    "총 승리(W)": p.win,
+                    "총 패배(L)": p.loss,
+                    "누적 승률(%)": winRate,
+                    "누적 득실차": p.diff,
+                    "합산 포인트": calculatedPoints
+                });
+            });
+
+            sheetRows.push({}); sheetRows.push({});
+            sheetRows.push({ "최종 순위": "⚔️ 참가자 개인별 상세 스코어카드 및 투구 AI 통계 데이터" });
+            sheetRows.push({}); 
+
+            // --- SECTION 2: 참가자 중심 데이터 가공 루프 (진영 색상 개념 완전 배제) ---
+            sortedRankList.forEach(p => {
+                const currentTargetPlayer = p.name;
+                const pInfo = parseNameAndUid(currentTargetPlayer);
+
+                if(!p.matches || p.matches.length === 0) return;
+
+                // 개인 구분을 인지하기 편하게 선수별 타이틀 헤더행 주입
+                sheetRows.push({
+                    "최종 순위": `👤 [참가자] ${pInfo.name} (${pInfo.uid}) 성적카드`,
+                    "참가자명": "", "고유번호": "", "대회진행상태": "", "총 승리(W)": "", "총 패배(L)": "", "누적 승률(%)": "", "누적 득실차": "", "합산 포인트": ""
+                });
+
+                p.matches.forEach(m => {
+                    let totalHoles = 0, totalBoards = 0, totalRounds = m.history.length;
+
+                    // 라운드 히스토리 내부에서 색상에 관계없이 오직 "본인"의 홀/보드 투구 성적만 가공 추적
+                    m.history.forEach(h => {
+                        const isPlayerOnRedSide = (currentTargetPlayer === h.redP || currentTargetPlayer.includes(h.redP));
+                        if (isPlayerOnRedSide) {
+                            totalHoles += (h.r3 || 0);
+                            totalBoards += (h.r1 || 0);
+                        } else {
+                            totalHoles += (h.b3 || 0);
+                            totalBoards += (h.b1 || 0);
+                        }
                     });
-                }
-            })); 
 
-            if(catMatchData.length > 0) {
-                const sheetName = cat.name.replace(/[\\?*\[\]\/]/g, "").substring(0, 30);
-                const ws = XLSX.utils.json_to_sheet(catMatchData);
-                XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            }
-        }); 
+                    const oppInfo = parseNameAndUid(m.opponent);
+                    const totalPadsThrown = totalRounds * 4;
+
+                    // 성공률 계산 (총 투구수 대비 획득 개수)
+                    const holeRate = totalPadsThrown > 0 ? ((totalHoles / totalPadsThrown) * 100).toFixed(1) + "%" : "0.0%";
+                    const boardRate = totalPadsThrown > 0 ? ((totalBoards / totalPadsThrown) * 100).toFixed(1) + "%" : "0.0%";
+
+                    sheetRows.push({
+                        "최종 순위": m.stage,                   // 진행단계
+                        "참가자명": m.court || "미지정",    // 코트위치
+                        "고유번호": oppInfo.name + `(${oppInfo.uid})`, // 상대선수명 정보
+                        "대회진행상태": m.isWin ? "승" : "패", // 해당 개인의 경기승패 결과
+                        "총 승리(W)": m.myScore,              // 본인 획득 스코어
+                        "총 패배(L)": m.oppScore,              // 상대방 획득 스코어
+                        "누적 승률(%)": m.diff > 0 ? `+${m.diff}` : m.diff, // 개별매치 단일 득실차
+                        "누적 득실차": totalRounds,          // 소요 라운드수
+                        "합산 포인트": totalHoles,            // 본인 총 3점 성공수
+                        
+                        // 확장 개인 통계 매핑 필드 (json_to_sheet 순서 주입 바인딩 우회 활용)
+                        "지정심판": totalBoards,              // 본인 총 1점 성공수
+                        "소요R": holeRate,                  // 본인 3점(Hole) 성공률
+                        "RED_3점(H)": boardRate,             // 본인 1점(Board) 성공률
+                        "RED_1점(B)": m.judge || "기록없음"   // 배정 심판 명칭
+                    });
+                });
+                sheetRows.push({}); 
+            });
+
+            // 단일 통합 데이터셋 엑셀 시트 래핑
+            const ws = XLSX.utils.json_to_sheet(sheetRows);
+            
+            // 수동 헤더 레이아웃 맞춤형 가로너비 최적화 규격 반영
+            ws['!cols'] = [
+                {wch: 15}, {wch: 12}, {wch: 24}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 14},
+                {wch: 12}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 14}
+            ];
+
+            let cleanSheetName = cat.name.replace(/[\\?*\[\]\/]/g, "").substring(0, 30);
+            XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
+        });
 
         function parseNameAndUid(displayName) {
             if(!displayName) return { name: "", uid: "" };
@@ -733,9 +786,16 @@
             if(match) return { name: match[1].trim(), uid: match[2].trim() };
             return { name: displayName.trim(), uid: "" };
         }
-        XLSX.writeFile(wb, `KCA_대회통합_스코어보드_${new Date().toLocaleDateString()}.xlsx`); 
+
+        XLSX.writeFile(wb, `KCA_선수기록_공식_스코어보드_${new Date().toLocaleDateString()}.xlsx`); 
     }
 
+    function undoRoundRef() { if (!rLog.length) return alert("기록 없음"); const last = rLog.pop(); refS.red -= last.r; refS.blue -= last.b; updateRefUI(); document.getElementById('ref-hist-body').deleteRow(document.getElementById('ref-hist-body').rows.length - 1); }
+    function updateRefUI() { document.getElementById('ref-red-total').innerText = refS.red; document.getElementById('ref-blue-total').innerText = refS.blue; }
+    function showDetail(r, m) { const match = categories[currentCatIdx].rounds[r][m]; let hist = (match.history || []).map(h => `${h.round}R: ${h.r}:${h.b}`).join('<br>'); document.getElementById('detail-content').innerHTML = `<b>${match.stage}</b><br>${match.redP} vs ${match.blueP}<hr>${hist}`; document.getElementById('detail-modal').style.display = 'flex'; }
+    function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
+    function renderTabs() { ['cat-tabs-public', 'cat-tabs-rank', 'cat-tabs-admin'].forEach(id => { const div = document.getElementById(id); if(!div) return; div.innerHTML = ""; categories.forEach((cat, i) => { const t = document.createElement('div'); t.className = `cat-tab ${i === currentCatIdx ? 'active' : ''}`; t.innerText = cat.name; t.onclick = () => { currentCatIdx = i; renderTabs(); refreshUIs(); }; div.appendChild(t); }); }); }
+    
     function resetTournamentAll() { if (confirm("전체 데이터를 초기화하시겠습니까?")) { db.ref('kca_tournament').set(null); location.reload(); } }
     
     function resetMAdmin(r, m) {
