@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10.90</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v11</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -87,7 +87,7 @@
         .count-btn-large.minus { flex: 1; } 
         .count-btn-large:active { background: #e0e0e0; }
 
-        /* 심판진 액션 공간 이미지 규격 매칭 1열 통합 구조화 처리 */
+        /* 심판진 액션 공간 image_16f827.png 완벽 매칭 1열 통합 구조화 처리 */
         .action-container-row { display: flex; align-items: center; gap: 8px; width: 100%; margin-bottom: 20px; }
         .btn-confirm-round { flex: 4.5; background: #00b894; color: white; font-size: 1.4rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); white-space: nowrap; }
         .btn-confirm-round:active { background: #009475; }
@@ -539,7 +539,7 @@
                 }
             }
             
-            // 대진표 식별 고유 ID 자동 보정 처리
+            // 대진표 자동 매치 고유 식별자 처리 버그 전면 보정
             cat.rounds.forEach((round, rIdx) => {
                 round.forEach((m, mIdx) => {
                     m.matchId = "m_" + cat.name.replace(/\s+/g, '') + "_" + rIdx + "_" + mIdx;
@@ -576,6 +576,7 @@
         document.getElementById('ref-engine-ui').style.display='none'; 
     }
 
+    // [버그 교정] 심판진 진영 변경 시 파이어베이스 및 데이터 변수 즉각 강제 오버라이딩 적용
     function syncSides(s) { 
         const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); 
         if(!s1.value || !s2.value) {
@@ -592,6 +593,7 @@
         } 
     }
 
+    // [버그 교정] 경기 최종 전송 시 최초 정렬인 p1, p2 대신 심판이 선택 가공한 진영 데이터(redP, blueP) 우선 정착
     function finishMatchAuto() { 
         const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
         const finalR = Math.min(refS.red, 21);
