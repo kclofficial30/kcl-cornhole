@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v10.1</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v10.20</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -36,7 +36,7 @@
         .btn-dark { background: var(--dark); color: white; }
         
         /* ------------------------------------------------------------------------
-           [심판석 레이아웃 이미지 기반 1:1 완벽 교정 CSS]
+           [심판석 레이아웃 1:1 완벽 교정 CSS]
         ------------------------------------------------------------------------ */
         .ref-info-grid { display: grid; grid-template-columns: 1fr 120px; gap: 10px; margin-bottom: 10px; }
         .ref-info-input { width: 100%; padding: 12px; border: 1px solid #ccc; font-size: 1rem; font-weight: bold; border-radius: 6px; }
@@ -49,18 +49,18 @@
         .team-section.red { background: #d63031; border: 3px solid #b32d2e; }
         .team-section.blue { background: #2980b9; border: 3px solid #216a9c; }
         
-        /* 특징 1: 상단 참가자 정보와 타이머 영역의 수평 양끝 분할 배정 */
+        /* 상단 참가자 정보와 타이머 영역 수평 배정 */
         .team-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%; }
         .player-info-box { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
         .player-name-title { font-size: 2rem; font-weight: 900; text-align: left; margin: 0; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
         .player-uid-sub { font-size: 1.1rem; font-weight: normal; opacity: 0.9; text-align: left; margin: 0; }
         
-        /* 타이머와 start 버튼 일렬 수평 배치 구조 */
+        /* 타이머와 start 버튼 수평 배치 */
         .timer-row-container { display: flex; align-items: center; gap: 6px; }
         .timer-top { font-size: 2rem; font-weight: bold; background: white; color: black; border-radius: 6px; padding: 2px 12px; min-width: 70px; text-align: center; font-family: monospace; line-height: 1.2; border: 1px solid #bbb; }
         .start-btn { background: #f1c40f; color: black; border: 1px solid #bc9c10; font-weight: bold; padding: 6px 14px; font-size: 1rem; border-radius: 6px; cursor: pointer; text-transform: lowercase; height: 100%; display: flex; align-items: center; justify-content: center; }
         
-        /* 특징 2: 중앙 배치형 대형 점수판 컨테이너 구조 */
+        /* 중앙 대형 점수판 컨테이너 */
         .score-box-container { background: rgba(0,0,0,0.15); border-radius: 10px; padding: 10px 0; text-align: center; margin-bottom: 15px; width: 100%; display: flex; justify-content: center; align-items: center; }
         .score-display { font-size: 8.5rem; font-weight: bold; line-height: 1; margin: 0; font-family: sans-serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.15); }
         
@@ -70,61 +70,22 @@
         .sub-score-label { font-size: 1rem; margin-bottom: 2px; font-weight: bold; width: 100%; text-align: left; opacity: 0.95; text-transform: lowercase; }
         .sub-score-value { font-size: 4.5rem; font-weight: bold; margin: 5px 0; line-height: 1; font-family: sans-serif; }
         
-        /* 특징 3: [ + ]와 [ - ]의 가로폭 비대칭 처리 (플러스 버튼이 마이너스의 2배 너비) */
+        /* [교정 핵심] [ + ]와 [ - ]의 순서 고정 및 가로폭 비대칭 처리 (플러스 버튼이 마이너스의 2배 너비) */
         .btn-ctrl-group { display: flex; width: 100%; gap: 6px; }
         .count-btn-large { border: none; border-radius: 6px; background: white; color: black; font-size: 2.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.2); height: 55px; transition: transform 0.1s, background-color 0.1s; }
-        .count-btn-large.plus { flex: 2; } 
-        .count-btn-large.minus { flex: 1; } 
+        .count-btn-large.plus { flex: 2; } /* 플러스 버튼 너비 2배 점유 */
+        .count-btn-large.minus { flex: 1; } /* 마이너스 버튼 너비 1배 점유 */
         .count-btn-large:active { background: #e0e0e0; transform: scale(0.97); }
         
-        /* 하단 버튼 액션 영역 레이아웃 - 무조건 가로 분할 유지 */
-        .action-container { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 15px; 
-            margin-bottom: 20px; 
-            width: 100%;
-        }
-        
+        /* 하단 버튼 액션 영역 레이아웃 */
+        .action-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; width: 100%; }
         .action-left-zone { width: 100%; }
         .action-right-zone { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
         
-        .btn-confirm-round { 
-            background: #00b894; 
-            color: white; 
-            font-size: 1.5rem; 
-            font-weight: bold; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            padding: 0 10px; 
-            height: 60px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-            width: 100%;
-            white-space: nowrap; 
-        }
+        .btn-confirm-round { background: #00b894; color: white; font-size: 1.5rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; padding: 0 10px; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; white-space: nowrap; }
         .btn-confirm-round:active { background: #009475; }
         
-        .btn-action-side { 
-            background: #95a5a6; 
-            color: white; 
-            font-size: 0.85rem; 
-            font-weight: bold; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            padding: 0 2px; 
-            height: 60px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            text-align: center; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-            line-height: 1.2;
-        }
+        .btn-action-side { background: #95a5a6; color: white; font-size: 0.85rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; padding: 0 2px; height: 60px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); line-height: 1.2; }
         .btn-action-side.resign-red { background: white; color: #d63031; border: 2px solid #d63031; }
         .btn-action-side.resign-blue { background: white; color: #2980b9; border: 2px solid #2980b9; }
         
@@ -226,8 +187,8 @@
                                 <span class="sub-score-label">board (1)</span>
                                 <span id="r1-q" class="sub-score-value">0</span>
                                 <div class="btn-ctrl-group">
-                                    <button class="count-btn-large minus" onclick="adj('r',1,-1)">-</button>
                                     <button class="count-btn-large plus" onclick="adj('r',1,1)">+</button>
+                                    <button class="count-btn-large minus" onclick="adj('r',1,-1)">-</button>
                                 </div>
                             </div>
                         </div>
@@ -262,8 +223,8 @@
                                 <span class="sub-score-label">board (1)</span>
                                 <span id="b1-q" class="sub-score-value">0</span>
                                 <div class="btn-ctrl-group">
-                                    <button class="count-btn-large minus" onclick="adj('b',1,-1)">-</button>
                                     <button class="count-btn-large plus" onclick="adj('b',1,1)">+</button>
+                                    <button class="count-btn-large minus" onclick="adj('b',1,-1)">-</button>
                                 </div>
                             </div>
                         </div>
