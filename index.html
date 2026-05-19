@@ -380,15 +380,34 @@
     function calcStats() {
         categories.forEach(cat => {
             const isLeague = cat.rounds && cat.rounds[0] && cat.rounds[0][0].stage === "리그전";
-            cat.stats = {}; cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"진행 중", rankVal:0});
+            cat.stats = {}; 
+            cat.players.forEach(p => cat.stats[p.이름] = {diff:0, win:0, loss:0, status:"진행 중", rankVal:0, matches:[]});
+            
             if(cat.rounds) cat.rounds.forEach(round => round.forEach(m => { if(m.winner && m.score.includes(':')) {
                 const s = m.score.split(':').map(Number);
                 const s0 = Math.min(s[0], 21), s1 = Math.min(s[1], 21);
                 const winS = m.winner===m.redP?s0:s1, lossS = m.winner===m.redP?s1:s0, diff = winS-lossS;
-                cat.stats[m.winner].win++; cat.stats[m.winner].diff += diff;
+                
+                cat.stats[m.winner].win++; 
+                cat.stats[m.winner].diff += diff;
+                
+                // 승자 경기 이력 및 단일 경기 득실 기록
+                const oppOfWin = m.winner === m.redP ? m.blueP : m.redP;
+                if(cat.stats[m.winner]) {
+                    cat.stats[m.winner].matches.push({ stage: m.stage, opponent: oppOfWin, myScore: winS, oppScore: lossS, diff: diff });
+                }
+
                 if(!isLeague && m.stage==="결승전") { cat.stats[m.winner].status="🏆 우승"; cat.stats[m.winner].rankVal=100; }
                 const lP = m.winner===m.redP?m.blueP:m.redP;
-                if(cat.stats[lP]) { cat.stats[lP].loss++; cat.stats[lP].diff -= diff; if(!isLeague) { if(m.stage==="결승전"){ cat.stats[lP].status="준우승"; cat.stats[lP].rankVal=50;} else cat.stats[lP].status=m.stage+" 탈락"; } }
+                if(cat.stats[lP]) { 
+                    cat.stats[lP].loss++; 
+                    cat.stats[lP].diff -= diff; 
+                    
+                    // 패자 경기 이력 및 단일 경기 득실 기록 (-값)
+                    cat.stats[lP].matches.push({ stage: m.stage, opponent: m.winner, myScore: lossS, oppScore: winS, diff: -diff });
+                    
+                    if(!isLeague) { if(m.stage==="결승전"){ cat.stats[lP].status="준우승"; cat.stats[lP].rankVal=50;} else cat.stats[lP].status=m.stage+" 탈락"; } 
+                }
             }}));
         });
     }
@@ -550,7 +569,6 @@
 
         box.onclick = () => { 
             if(m.winner) {
-                // 실시간 대진표(Public) 상태일 때만 경기 상세결과 팝업 활성화
                 if (!isAdmin) {
                     showDetail(r, mi); 
                 }
@@ -596,8 +614,41 @@
         });
         sorted.forEach((p, i) => {
             const row = root.insertRow(-1);
-            row.innerHTML = `<td><b>${i+1}위</b></td><td>${p.name}</td><td>${p.status}</td><td>${p.diff>0?'+'+p.diff:p.diff}</td><td>${p.win}승 ${p.loss}패</td>`;
+            const diffVal = p.diff > 0 ? '+' + p.diff : p.diff;
+            
+            row.innerHTML = `<td><b>${i+1}위</b></td>
+                             <td>${p.name}</td>
+                             <td>${p.status}</td>
+                             <td data-name="${p.name}" onclick="showPlayerDiffDetail(this.dataset.name)" style="cursor:pointer; text-decoration:underline; font-weight:bold; color:var(--blue);">${diffVal}</td>
+                             <td>${p.win}승 ${p.loss}패</td>`;
         });
+    }
+
+    // [신규 기능] 대회 순위 페이지에서 득실차 클릭 시 매치별 득실 세부 내역 팝업 호출
+    function showPlayerDiffDetail(playerName) {
+        const cat = categories[currentCatIdx];
+        const pStats = cat.stats[playerName];
+        if (!pStats || !pStats.matches || pStats.matches.length === 0) {
+            alert("진행된 경기 기록이 없습니다.");
+            return;
+        }
+        
+        let cleanName = playerName.split('(')[0];
+        let html = `<h3>📊 ${cleanName} 선수 득실 상세</h3><hr>`;
+        
+        pStats.matches.forEach(m => {
+            const diffStr = m.diff > 0 ? `+${m.diff}` : m.diff;
+            const resultColor = m.diff > 0 ? 'var(--blue)' : 'var(--red)';
+            let cleanOpponent = m.opponent.split('(')[0];
+            
+            html += `<div style="margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+                <span><b>[${m.stage}]</b> vs ${cleanOpponent} (${m.myScore}:${m.oppScore})</span>
+                <span style="color: ${resultColor}; font-weight: bold;">${diffStr}</span>
+            </div>`;
+        });
+        
+        document.getElementById('detail-content').innerHTML = html;
+        document.getElementById('detail-modal').style.display = 'flex';
     }
 
     function undoRoundRef() { if (!rLog.length) return alert("기록 없음"); const last = rLog.pop(); refS.red -= last.r; refS.blue -= last.b; updateRefUI(); document.getElementById('ref-hist-body').deleteRow(document.getElementById('ref-hist-body').rows.length - 1); }
