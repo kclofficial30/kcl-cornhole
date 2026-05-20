@@ -982,8 +982,13 @@
     function showDetail(r, m) { const match = categories[currentCatIdx].rounds[r][m]; let hist = (match.history || []).map(h => `${h.round}R: ${h.r}:${h.b}`).join('<br>'); document.getElementById('detail-content').innerHTML = `<b>${match.stage}</b><br>${match.redP} vs ${match.blueP}<hr>${hist}`; document.getElementById('detail-modal').style.display = 'flex'; }
     function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
     function renderTabs() { ['cat-tabs-public', 'cat-tabs-rank', 'cat-tabs-admin'].forEach(id => { const div = document.getElementById(id); if(!div) return; div.innerHTML = ""; categories.forEach((cat, i) => { const t = document.createElement('div'); t.className = `cat-tab ${i === currentCatIdx ? 'active' : ''}`; t.innerText = cat.name; t.onclick = () => { currentCatIdx = i; renderTabs(); refreshUIs(); }; div.appendChild(t); }); }); }
-    function resetTournamentAll() { if (confirm("전체 데이터를 초기화하시겠습니까?")) { db.ref('kca_tournament').set(null); location.reload(); } }
-    
+    function resetTournamentAll() { 
+    if (confirm("전체 데이터를 초기화하시겠습니까? (대회명도 함께 초기화됩니다)")) { 
+        db.ref('kca_tournament').set(null); 
+        db.ref('kca_info/name').set(null); // 대회명 데이터 초기화 추가
+        location.reload(); 
+    } 
+}
     function resetMAdmin(r, m) {
         if (!confirm("해당 경기 결과와 상위 진출 데이터를 모두 리셋하시겠습니까?")) return;
         const cat = categories[currentCatIdx]; const targetMatch = cat.rounds[r][m];
