@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v13.0</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v15.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -80,9 +80,9 @@
         .timer-top { font-size: 1.8rem; font-weight: bold; background: white; color: black; border-radius: 6px; padding: 2px 10px; min-width: 60px; text-align: center; font-family: monospace; line-height: 1.2; }
         .start-btn { background: #f1c40f; color: black; border: none; font-weight: bold; padding: 6px 12px; font-size: 0.9rem; border-radius: 6px; cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         
-        /* 터치 액션 none 추가 (상하 스와이프 시 스크롤 방지용) */
-        .score-box-container { margin: 10px 0 25px 0; width: 100%; display: flex; justify-content: center; align-items: center; background: transparent; touch-action: none; cursor: ns-resize; }
-        .score-display { font-size: 12rem; font-weight: bold; line-height: 0.85; margin: 0; font-family: sans-serif; text-shadow: none; pointer-events: none; }
+        /* 터치 액션 속성 제거 완료 (정상적인 화면 스크롤 복구) */
+        .score-box-container { margin: 10px 0 25px 0; width: 100%; display: flex; justify-content: center; align-items: center; background: transparent; }
+        .score-display { font-size: 20rem; font-weight: bold; line-height: 0.85; margin: 0; font-family: sans-serif; text-shadow: none; }
         
         .sub-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
         .sub-score-cell { display: flex; flex-direction: column; background: rgba(0,0,0,0.12); padding: 10px; border-radius: 8px; }
@@ -117,7 +117,6 @@
         .warning { color: #ffeaa7 !important; background: #ff7675 !important; animation: blink 0.5s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* 연습용 전용 스타일 추가 */
         .prac-setup-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         .prac-setup-label { font-weight: bold; font-size: 0.9rem; }
         .prac-input, .prac-select { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
@@ -167,8 +166,8 @@
                     </select>
                     <select id="prac-max-rounds" class="prac-select">
                         <option value="0">라운드 제한: 없음 (공식)</option>
-                        <option value="10">10라운드 종료 (단기 평가)</option>
-                        <option value="15">15라운드 종료 (체력 훈련)</option>
+                        <option value="4">4라운드 종료 (단기 평가)</option>
+                        <option value="8">8라운드 종료 (체력 훈련)</option>
                     </select>
                 </div>
             </div>
@@ -203,9 +202,11 @@
                             <button class="start-btn" onclick="startPracTimer('red')">start</button>
                         </div>
                     </div>
-                    <div class="score-box-container" ontouchstart="handleSwipeStart(event)" ontouchend="handleSwipeEnd(event, 'prac', 'red')">
+                    
+                    <div class="score-box-container">
                         <div id="prac-score-red" class="score-display">0</div>
                     </div>
+                    
                     <div class="sub-score-grid">
                         <div class="sub-score-cell">
                             <div class="sub-score-header"><span class="sub-score-label">hole (3)</span><span id="pr3-q" class="sub-score-value">0</span></div>
@@ -232,9 +233,11 @@
                             <button class="start-btn" onclick="startPracTimer('blue')">start</button>
                         </div>
                     </div>
-                    <div class="score-box-container" ontouchstart="handleSwipeStart(event)" ontouchend="handleSwipeEnd(event, 'prac', 'blue')">
+                    
+                    <div class="score-box-container">
                         <div id="prac-score-blue" class="score-display">0</div>
                     </div>
+                    
                     <div class="sub-score-grid">
                         <div class="sub-score-cell">
                             <div class="sub-score-header"><span class="sub-score-label">hole (3)</span><span id="pb3-q" class="sub-score-value">0</span></div>
@@ -344,7 +347,7 @@
                             </div>
                         </div>
                         
-                        <div class="score-box-container" ontouchstart="handleSwipeStart(event)" ontouchend="handleSwipeEnd(event, 'ref', 'red')">
+                        <div class="score-box-container">
                             <div id="ref-red-total" class="score-display">0</div>
                         </div>
                         
@@ -378,7 +381,7 @@
                             </div>
                         </div>
                         
-                        <div class="score-box-container" ontouchstart="handleSwipeStart(event)" ontouchend="handleSwipeEnd(event, 'ref', 'blue')">
+                        <div class="score-box-container">
                             <div id="ref-blue-total" class="score-display">0</div>
                         </div>
                         
@@ -476,10 +479,6 @@
     let hqAuth = localStorage.getItem('kca_hq_code') || "1234", refAuth = localStorage.getItem('kca_ref_code') || "1234", pendingV = "", pendingMatch = null, categories = [], currentCatIdx = 0, refS = {red:0, blue:0}, refI = {r3:0, r1:0, b3:0, b1:0}, tRef = null, rLog = [], activeM = null, tournamentName = "데이터 실시간 통합", isTimerRunning = false;
     let currentMatchKey = null, activeMatchesData = {}, liveActiveKey = null;
 
-    // --- 스와이프 제어 전역 변수 ---
-    let touchStartY = 0;
-    const SWIPE_THRESHOLD = 40;
-
     // --- 연습용 전용 변수 ---
     let pracState = { red: '팀 레드', blue: '팀 블루', targetScore: 21, maxRounds: 0, timerMode: 15 };
     let pracS = { red: 0, blue: 0 };
@@ -527,39 +526,6 @@
             if(pendingMatch) { currentCatIdx = pendingMatch.cat; setupRefereeView(pendingMatch.r, pendingMatch.m); }
             document.getElementById('code-val').value = "";
         } else alert("인증 실패");
-    }
-
-    /* --------------------------------------------------------
-       [터치 스와이프 점수 조정 컨트롤 로직]
-    -------------------------------------------------------- */
-    function handleSwipeStart(e) {
-        touchStartY = e.touches[0].clientY;
-    }
-
-    function handleSwipeEnd(e, context, team) {
-        let touchEndY = e.changedTouches[0].clientY;
-        let deltaY = touchEndY - touchStartY;
-
-        // 아래로 스와이프 (-1점)
-        if (deltaY > SWIPE_THRESHOLD) {
-            if(context === 'prac') {
-                pracS[team] = Math.max(pracS[team] - 1, 0);
-                updatePracUI();
-            } else if (context === 'ref') {
-                refS[team] = Math.max(refS[team] - 1, 0);
-                updateRefUI();
-            }
-        } 
-        // 위로 스와이프 (+1점)
-        else if (deltaY < -SWIPE_THRESHOLD) {
-            if(context === 'prac') {
-                pracS[team] = Math.min(pracS[team] + 1, 999);
-                updatePracUI();
-            } else if (context === 'ref') {
-                refS[team] = Math.min(refS[team] + 1, 999); // 21점 이상 무한정 오버런 가능하도록 설정
-                updateRefUI();
-            }
-        }
     }
 
     /* --------------------------------------------------------
@@ -793,9 +759,18 @@
             const courtNum = document.getElementById('ref-court-num').value || "미지정";
             db.ref('activeMatches/' + currentMatchKey).update({
                 categoryName: categories[currentCatIdx].name,
-                stage: activeM.stage, court: courtNum, referee: judgeName,
-                redP: activeM.redP, blueP: activeM.blueP, redScore: refS.red, blueScore: refS.blue,
-                currentRound: rLog.length, lastRedHoles: refI.r3, lastRedBoards: refI.r1, lastBlueHoles: refI.b3, lastBlueBoards: refI.b1,
+                stage: activeM.stage,
+                court: courtNum,
+                referee: judgeName,
+                redP: activeM.redP,
+                blueP: activeM.blueP,
+                redScore: refS.red,
+                blueScore: refS.blue,
+                currentRound: rLog.length,
+                lastRedHoles: refI.r3,
+                lastRedBoards: refI.r1,
+                lastBlueHoles: refI.b3,
+                lastBlueBoards: refI.b1,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
         }
