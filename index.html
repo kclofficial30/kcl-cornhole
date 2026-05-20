@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v11.0</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v12.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -47,7 +47,7 @@
         .live-score-badge { font-size: 1.8rem; font-weight: 900; font-family: monospace; color: #333; }
         .live-stats-sub { font-size: 0.75rem; color: #7f8c8d; background: #f8f9fa; padding: 4px 8px; border-radius: 6px; display: flex; gap: 10px; margin-top: 4px; }
         
-        /* 대형 전광판 팝업 전용 고급 CSS 모듈 (전체화면 및 초대형 스코어 적용) */
+        /* 대형 전광판 팝업 전용 고급 CSS 모듈 */
         .big-board-container { background: #1e272e; color: #fff; border-radius: 16px; padding: 2vh 3vw; text-align: center; font-family: sans-serif; height: 100%; display: flex; flex-direction: column; justify-content: center; }
         .big-board-title { color: var(--gold); font-size: clamp(1.2rem, 2.5vw, 2.5rem); font-weight: bold; margin-bottom: 1vh; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; }
         .big-board-main { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 3vw; flex: 1; margin-bottom: 2vh; }
@@ -55,40 +55,58 @@
         .big-board-side.red { background-color: #d63031; border: 4px solid #b32d2e; }
         .big-board-side.blue { background-color: #2980b9; border: 4px solid #216a9c; }
         .big-board-name { font-size: clamp(2rem, 5vw, 6rem); font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-bottom: 1vh; }
-        /* 점수를 화면 꽉 차게 초대형으로 출력 */
         .big-board-score { font-size: clamp(8rem, 28vw, 35rem); font-weight: 900; font-family: monospace; text-shadow: 4px 6px 15px rgba(0,0,0,0.5); line-height: 0.85; margin: 0; }
         .big-board-vs { font-size: clamp(2rem, 5vw, 6rem); font-weight: 900; color: #7f8c8d; font-style: italic; display: flex; align-items: center; justify-content: center; padding: 0 2vw; }
         .big-board-meta { background: rgba(0,0,0,0.3); padding: 1.5vh; border-radius: 10px; display: flex; justify-content: space-around; font-size: clamp(1rem, 1.8vw, 2.2rem); border: 1px solid #3d4e5d; align-items: center; }
         .big-board-round-label { font-size: clamp(1.5rem, 3.5vw, 4rem); color: #00b894; font-weight: bold; margin-bottom: 1vh; }
 
-        /* 심판석 수량 증감 버튼 및 액션라인 배치 */
+        /* 심판석 입력란 및 초기 상태 (점수판 진입시 자동 숨김 처리) */
         .ref-info-grid { display: grid; grid-template-columns: 1fr 120px; gap: 10px; margin-bottom: 10px; }
         .ref-info-input { width: 100%; padding: 12px; border: 1px solid #ccc; font-size: 1rem; font-weight: bold; border-radius: 6px; }
-        .scoreboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-        @media (max-width: 768px) { .scoreboard-grid { grid-template-columns: 1fr; gap: 20px; } }
-        .team-section { border-radius: 12px; padding: 15px; color: white; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
-        .team-section.red { background: #d63031; border: 3px solid #b32d2e; }
-        .team-section.blue { background: #2980b9; border: 3px solid #216a9c; }
+        
+        /* ------------------------------------------------------------------------
+           [NEW] 심판석 스코어보드 교정 및 팀 위치 변경 플렉스 설정
+        ------------------------------------------------------------------------ */
+        .scoreboard-grid { display: flex; flex-direction: row; gap: 15px; margin-bottom: 15px; width: 100%; transition: flex-direction 0.2s ease; }
+        .scoreboard-grid > div { flex: 1; min-width: 0; }
+        /* 위치 변경 클래스 */
+        .scoreboard-grid.swapped { flex-direction: row-reverse; }
+        @media (max-width: 768px) { 
+            .scoreboard-grid { flex-direction: column; } 
+            .scoreboard-grid.swapped { flex-direction: column-reverse; }
+        }
+
+        /* 팀 섹션 (배경 단색화 테두리 제거 등) */
+        .team-section { border-radius: 12px; padding: 15px; color: white; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; flex-direction: column; border: none; }
+        .team-section.red { background: #d63031; }
+        .team-section.blue { background: #2980b9; }
         .team-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%; }
         .player-info-box { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-        .player-name-title { font-size: 2rem; font-weight: 900; text-align: left; margin: 0; line-height: 1.1; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-        .player-uid-sub { font-size: 1.1rem; font-weight: normal; opacity: 0.9; text-align: left; margin: 0; }
+        .player-name-title { font-size: 1.8rem; font-weight: 900; text-align: left; margin: 0; line-height: 1.1; }
+        .player-uid-sub { font-size: 1rem; font-weight: normal; opacity: 0.9; text-align: left; margin: 0; }
+        
         .timer-row-container { display: flex; align-items: center; gap: 6px; }
-        .timer-top { font-size: 2rem; font-weight: bold; background: white; color: black; border-radius: 6px; padding: 2px 12px; min-width: 70px; text-align: center; font-family: monospace; line-height: 1.2; border: 1px solid #bbb; }
-        .start-btn { background: #f1c40f; color: black; border: 1px solid #bc9c10; font-weight: bold; padding: 6px 14px; font-size: 1rem; border-radius: 6px; cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .score-box-container { background: rgba(0,0,0,0.15); border-radius: 10px; padding: 10px 0; text-align: center; margin-bottom: 15px; width: 100%; display: flex; justify-content: center; align-items: center; }
-        .score-display { font-size: 8.5rem; font-weight: bold; line-height: 1; margin: 0; font-family: sans-serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.15); }
+        .timer-top { font-size: 1.8rem; font-weight: bold; background: white; color: black; border-radius: 6px; padding: 2px 10px; min-width: 60px; text-align: center; font-family: monospace; line-height: 1.2; }
+        .start-btn { background: #f1c40f; color: black; border: none; font-weight: bold; padding: 6px 12px; font-size: 0.9rem; border-radius: 6px; cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        /* 캔슬링 이후 총 점수가 꽉 차게 보이도록 최대화 */
+        .score-box-container { margin: 10px 0 25px 0; width: 100%; display: flex; justify-content: center; align-items: center; background: transparent; }
+        .score-display { font-size: 12rem; font-weight: bold; line-height: 0.85; margin: 0; font-family: sans-serif; text-shadow: none; }
+        
+        /* 증감 서브 스코어 레이아웃 교정 (가로 정렬 라벨+값) */
         .sub-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-        .sub-score-cell { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.06); padding: 12px; border-radius: 8px; }
-        .sub-score-label { font-size: 1rem; margin-bottom: 2px; font-weight: bold; width: 100%; text-align: left; opacity: 0.95; }
-        .sub-score-value { font-size: 4.5rem; font-weight: bold; margin: 5px 0; line-height: 1; font-family: sans-serif; }
+        .sub-score-cell { display: flex; flex-direction: column; background: rgba(0,0,0,0.12); padding: 10px; border-radius: 8px; }
+        .sub-score-header { display: flex; justify-content: space-between; align-items: baseline; width: 100%; margin-bottom: 8px; }
+        .sub-score-label { font-size: 1rem; font-weight: bold; margin: 0; opacity: 0.95; }
+        .sub-score-value { font-size: 3rem; font-weight: bold; line-height: 1; font-family: sans-serif; margin: 0; }
+        
         .btn-ctrl-group { display: flex; width: 100%; gap: 6px; }
-        .count-btn-large { border: none; border-radius: 6px; background: white; color: black; font-size: 2.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.2); height: 55px; transition: transform 0.1s; }
+        .count-btn-large { border: none; border-radius: 6px; background: white; color: black; font-size: 2.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 6px rgba(0,0,0,0.2); height: 50px; transition: transform 0.1s; }
         .count-btn-large.plus { flex: 2; } 
         .count-btn-large.minus { flex: 1; } 
-        .count-btn-large:active { background: #e0e0e0; }
+        .count-btn-large:active { background: #e0e0e0; transform: scale(0.97); }
 
-        /* 심판진 액션 공간 image_16f827.png 완벽 매칭 1열 통합 구조화 처리 */
+        /* 심판진 액션 공간 */
         .action-container-row { display: flex; align-items: center; gap: 8px; width: 100%; margin-bottom: 20px; }
         .btn-confirm-round { flex: 4.5; background: #00b894; color: white; font-size: 1.4rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); white-space: nowrap; }
         .btn-confirm-round:active { background: #009475; }
@@ -151,14 +169,17 @@
             <div style="margin-bottom: 12px;">
                 <button class="btn btn-dark" style="background:var(--gray); height:45px; font-size:1rem; width:auto; padding:0 20px;" onclick="exitRefereeView()">↩ 대진표로 나가기</button>
             </div>
-            <div class="ref-info-grid">
+            
+            <div class="ref-info-grid" id="ref-inputs-container">
                 <input type="text" id="ref-judge-name" class="ref-info-input" placeholder="심판 성명">
                 <input type="text" id="ref-court-num" class="ref-info-input" placeholder="코트">
             </div>
+            
             <div id="ref-status-bar" style="background:#000000; color:white; padding:12px; font-weight:bold; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; font-size:1.1rem;">
                 <span id="ref-stage-name" style="color:var(--gold);">매치 대기</span>
                 <span id="ref-cat-name">종목명</span>
             </div>
+            
             <div id="ref-side-zone" style="background:#fffbe6; padding:20px; border-radius:12px; border:2px dashed #ffe58f; margin-bottom:15px; text-align:center;">
                 <p style="margin-bottom:15px; font-weight:bold; font-size:1.1rem;">🎲 경기 진영 배정</p>
                 <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
@@ -167,32 +188,45 @@
                     <select id="sel-blue-p" onchange="syncSides('blue')" style="width:42%; padding:12px; border-radius:8px; border:2px solid var(--blue); font-weight:bold; font-size:1rem;"></select>
                 </div>
             </div>
+            
             <div id="ref-engine-ui" style="display:none;">
-                <div class="scoreboard-grid">
+                
+                <div style="background:#000000; padding:10px 15px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; border-radius:6px; flex-wrap:wrap; gap:10px;">
+                    <span id="active-match-info" style="color:var(--gold); font-weight:bold; font-size:1.05rem;">예선전 / 종목 / 심판명 / 코트</span>
+                    <button onclick="toggleTeamPosition()" style="background:#fff200; color:#000; border:none; padding:8px 18px; font-weight:900; font-size:1rem; border-radius:4px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">팀위치 변경</button>
+                </div>
+                
+                <div class="scoreboard-grid" id="match-scoreboard">
                     <div class="team-section red">
                         <div class="team-header-row">
                             <div class="player-info-box">
                                 <div class="player-name-title" id="red-name-label">참가자명</div>
-                                <div class="player-uid-sub" id="red-uid-label">(고유번호)</div>
+                                <div class="player-uid-sub" id="red-uid-label"></div>
                             </div>
                             <div class="timer-row-container">
                                 <div id="timer-red" class="timer-top">15</div>
                                 <button class="start-btn" onclick="tStart('red')">start</button>
                             </div>
                         </div>
+                        
                         <div class="score-box-container"><div id="ref-red-total" class="score-display">0</div></div>
+                        
                         <div class="sub-score-grid">
                             <div class="sub-score-cell">
-                                <span class="sub-score-label">hole (3)</span>
-                                <span id="r3-q" class="sub-score-value">0</span>
+                                <div class="sub-score-header">
+                                    <span class="sub-score-label">hole (3)</span>
+                                    <span id="r3-q" class="sub-score-value">0</span>
+                                </div>
                                 <div class="btn-ctrl-group">
                                     <button class="count-btn-large plus" onclick="adj('r',3,1)">+</button>
                                     <button class="count-btn-large minus" onclick="adj('r',3,-1)">-</button>
                                 </div>
                             </div>
                             <div class="sub-score-cell">
-                                <span class="sub-score-label">board (1)</span>
-                                <span id="r1-q" class="sub-score-value">0</span>
+                                <div class="sub-score-header">
+                                    <span class="sub-score-label">board (1)</span>
+                                    <span id="r1-q" class="sub-score-value">0</span>
+                                </div>
                                 <div class="btn-ctrl-group">
                                     <button class="count-btn-large plus" onclick="adj('r',1,1)">+</button>
                                     <button class="count-btn-large minus" onclick="adj('r',1,-1)">-</button>
@@ -200,30 +234,37 @@
                             </div>
                         </div>
                     </div>
+                    
                     <div class="team-section blue">
                         <div class="team-header-row">
                             <div class="player-info-box">
                                 <div class="player-name-title" id="blue-name-label">참가자명</div>
-                                <div class="player-uid-sub" id="blue-uid-label">(고유번호)</div>
+                                <div class="player-uid-sub" id="blue-uid-label"></div>
                             </div>
                             <div class="timer-row-container">
                                 <div id="timer-blue" class="timer-top">15</div>
                                 <button class="start-btn" onclick="tStart('blue')">start</button>
                             </div>
                         </div>
+                        
                         <div class="score-box-container"><div id="ref-blue-total" class="score-display">0</div></div>
+                        
                         <div class="sub-score-grid">
                             <div class="sub-score-cell">
-                                <span class="sub-score-label">hole (3)</span>
-                                <span id="b3-q" class="sub-score-value">0</span>
+                                <div class="sub-score-header">
+                                    <span class="sub-score-label">hole (3)</span>
+                                    <span id="b3-q" class="sub-score-value">0</span>
+                                </div>
                                 <div class="btn-ctrl-group">
                                     <button class="count-btn-large plus" onclick="adj('b',3,1)">+</button>
                                     <button class="count-btn-large minus" onclick="adj('b',3,-1)">-</button>
                                 </div>
                             </div>
                             <div class="sub-score-cell">
-                                <span class="sub-score-label">board (1)</span>
-                                <span id="b1-q" class="sub-score-value">0</span>
+                                <div class="sub-score-header">
+                                    <span class="sub-score-label">board (1)</span>
+                                    <span id="b1-q" class="sub-score-value">0</span>
+                                </div>
                                 <div class="btn-ctrl-group">
                                     <button class="count-btn-large plus" onclick="adj('b',1,1)">+</button>
                                     <button class="count-btn-large minus" onclick="adj('b',1,-1)">-</button>
@@ -355,6 +396,12 @@
     function tStop() { if (tRef) clearInterval(tRef); isTimerRunning = false; document.querySelectorAll('.timer-top').forEach(el => { el.innerText = "15"; el.classList.remove('warning'); }); }
     function adj(t, p, d) { const cur = refI[t+'3'] + refI[t+'1']; if(d > 0 && cur >= 4) return alert("최대 4개"); refI[t+p] = Math.max(0, refI[t+p]+d); document.getElementById(t+p+'-q').innerText = refI[t+p]; }
     
+    // [NEW] 팀 위치 변경(레드 <-> 블루 화면 출력 순서 반전) 함수
+    function toggleTeamPosition() {
+        const grid = document.getElementById('match-scoreboard');
+        if (grid) grid.classList.toggle('swapped');
+    }
+
     function submitRoundRef() {
         const rs = refI.r3*3 + refI.r1, bs = refI.b3*3 + refI.b1, diff = rs-bs, rg = diff>0?diff:0, bg = diff<0?Math.abs(diff):0;
         refS.red += rg; refS.blue += bg;
@@ -549,7 +596,6 @@
                 }
             }
             
-            // 대진표 자동 매치 고유 식별자 처리 버그 전면 보정
             cat.rounds.forEach((round, rIdx) => {
                 round.forEach((m, mIdx) => {
                     m.matchId = "m_" + cat.name.replace(/\s+/g, '') + "_" + rIdx + "_" + mIdx;
@@ -564,6 +610,11 @@
         const match = cat.rounds[r][m]; 
         activeM = { rIdx: r, mIdx: m, ...match }; 
         currentMatchKey = match.matchId || ("m_" + currentCatIdx + "_" + r + "_" + m);
+        
+        // 매치 진입 시 항상 초기 화면 상태로 셋팅
+        document.getElementById('ref-inputs-container').style.display = 'grid';
+        document.getElementById('ref-status-bar').style.display = 'flex';
+        document.getElementById('match-scoreboard').classList.remove('swapped'); // 스왑 상태 해제
         
         const judgeName = document.getElementById('ref-judge-name').value || "지정심판";
         const courtNum = document.getElementById('ref-court-num').value || "미지정";
@@ -582,62 +633,75 @@
         const s1=document.getElementById('sel-red-p'), s2=document.getElementById('sel-blue-p'); 
         s1.innerHTML=s2.innerHTML='<option value="">선택</option>'; 
         [match.p1, match.p2].forEach(p=>{ if(p) { s1.add(new Option(p,p)); s2.add(new Option(p,p)); } }); 
+        
         document.getElementById('ref-side-zone').style.display='block'; 
         document.getElementById('ref-engine-ui').style.display='none'; 
     }
 
-    // [버그 교정] 심판진 진영 변경 시 파이어베이스 및 데이터 변수 즉각 강제 오버라이딩 적용
-function syncSides(s) { 
-    const s1 = document.getElementById('sel-red-p'), s2 = document.getElementById('sel-blue-p'); 
-    
-    // 상대 진영 자동 보정
-    if(!s1.value || !s2.value) {
-        if(s === 'red') s2.value = (s1.value === activeM.p1 ? activeM.p2 : activeM.p1); 
-        else s1.value = (s2.value === activeM.p1 ? activeM.p2 : activeM.p1); 
-    }
-    
-    if(s1.value && s2.value){ 
-        activeM.redP = s1.value; activeM.blueP = s2.value; 
-        document.getElementById('ref-side-zone').style.display = 'none'; 
-        document.getElementById('ref-engine-ui').style.display = 'block'; 
+    function syncSides(s) { 
+        const s1 = document.getElementById('sel-red-p'), s2 = document.getElementById('sel-blue-p'); 
         
-        // [교정] 여기서 전체 값(팀명+고유번호)을 라벨에 뿌려줌
-        document.getElementById('red-name-label').innerText = s1.value;
-        document.getElementById('blue-name-label').innerText = s2.value;
-        
-        // 고유번호 부분은 이미 팀명에 포함되어 있으므로 타이틀 영역을 깔끔하게 유지
-        document.getElementById('red-uid-label').innerText = "";
-        document.getElementById('blue-uid-label').innerText = "";
-
-        if (currentMatchKey) { 
-            db.ref('activeMatches/' + currentMatchKey).update({ redP: s1.value, blueP: s2.value }); 
+        if(!s1.value || !s2.value) {
+            if(s === 'red') s2.value = (s1.value === activeM.p1 ? activeM.p2 : activeM.p1); 
+            else s1.value = (s2.value === activeM.p1 ? activeM.p2 : activeM.p1); 
         }
-    } 
-}
-    // [버그 교정] 경기 최종 전송 시 최초 정렬인 p1, p2 대신 심판이 선택 가공한 진영 데이터(redP, blueP) 우선 정착
+        
+        if(s1.value && s2.value){ 
+            activeM.redP = s1.value; activeM.blueP = s2.value; 
+            
+            // [NEW] 진영 배정 완료 후 -> 정보 입력란 완전히 숨김 & 상단 통합 상태바 렌더링
+            document.getElementById('ref-side-zone').style.display = 'none'; 
+            document.getElementById('ref-inputs-container').style.display = 'none'; 
+            document.getElementById('ref-status-bar').style.display = 'none'; 
+            
+            const judgeName = document.getElementById('ref-judge-name').value || "지정심판";
+            const courtNum = document.getElementById('ref-court-num').value || "미지정";
+            document.getElementById('active-match-info').innerText = `${activeM.stage} / ${categories[currentCatIdx].name} / ${judgeName} / ${courtNum}`;
+            
+            document.getElementById('ref-engine-ui').style.display = 'block'; 
+            
+            document.getElementById('red-name-label').innerText = s1.value;
+            document.getElementById('blue-name-label').innerText = s2.value;
+            
+            document.getElementById('red-uid-label').innerText = "";
+            document.getElementById('blue-uid-label').innerText = "";
+
+            if (currentMatchKey) { 
+                db.ref('activeMatches/' + currentMatchKey).update({ redP: s1.value, blueP: s2.value }); 
+            }
+        } 
+    }
+
     function finishMatchAuto() { 
-    const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
-    const finalR = Math.min(refS.red, 21);
-    const finalB = Math.min(refS.blue, 21);
-    
-    // 심판이 최종 확정한 activeM.redP(팀명+고유번호)를 우승자/기록으로 저장
-    m.winner = refS.red > refS.blue ? activeM.redP : activeM.blueP; 
-    m.score = `${finalR}:${finalB}`; 
-    m.redP = activeM.redP; 
-    m.blueP = activeM.blueP; 
-    m.history = [...rLog]; 
-    m.judge = document.getElementById('ref-judge-name').value; 
-    m.court = document.getElementById('ref-court-num').value; 
-    
-    pushNext(activeM.rIdx, activeM.mIdx, m.winner); 
-    
-    if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); currentMatchKey = null; }
-    db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); 
-}
+        const cat = categories[currentCatIdx], m = cat.rounds[activeM.rIdx][activeM.mIdx]; 
+        const finalR = Math.min(refS.red, 21);
+        const finalB = Math.min(refS.blue, 21);
+        
+        m.winner = refS.red > refS.blue ? activeM.redP : activeM.blueP; 
+        m.score = `${finalR}:${finalB}`; 
+        m.redP = activeM.redP; 
+        m.blueP = activeM.blueP; 
+        m.history = [...rLog]; 
+        m.judge = document.getElementById('ref-judge-name').value; 
+        m.court = document.getElementById('ref-court-num').value; 
+        
+        pushNext(activeM.rIdx, activeM.mIdx, m.winner); 
+        
+        if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); currentMatchKey = null; }
+        
+        // 종료 시점 입력란 가시성 원복
+        document.getElementById('ref-inputs-container').style.display = 'grid';
+        document.getElementById('ref-status-bar').style.display = 'flex';
+        
+        db.ref('kca_tournament').set(categories).then(() => { alert("결과 전송 완료!"); showView('bracket'); }); 
+    }
 
     function exitRefereeView() {
         if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); currentMatchKey = null; }
-        tStop(); showView('bracket');
+        tStop(); 
+        document.getElementById('ref-inputs-container').style.display = 'grid';
+        document.getElementById('ref-status-bar').style.display = 'flex';
+        showView('bracket');
     }
 
     function pushNext(r, m, w) { 
