@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v16.0</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v17.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1178,15 +1178,7 @@ function resetTournamentAll() {
         db.ref('kca_tournament').set(null);
         db.ref('kca_info/name').set(null);
         
-        // [추가] 초기화 시 입력창 UI 및 상단 타이틀 원상복구
-        const tournamentInput = document.getElementById('tournament-name');
-        if (tournamentInput) tournamentInput.value = '';
-        
-        const logoLink = document.querySelector('.nav-bar .nav-logo');
-        if (logoLink) {
-            logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> 데이터 실시간 통합`;
-        }
-        
+        // 데이터가 지워진 후 페이지를 새로고침하여 초기 상태를 불러옴
         location.reload();
     }
 }
@@ -1236,19 +1228,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const v = e.target.value.trim();
             const displayTitle = v || "데이터 실시간 통합";
             
-            // 1. 화면 상단 타이틀(KCL 로고 옆 글자) 즉시 강제 변경
+            // 1. 화면 상단 타이틀 즉시 강제 변경 ('한국콘홀협회' 텍스트 보존)
             const logoLink = document.querySelector('.nav-bar .nav-logo');
             if (logoLink) {
-                logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> ${displayTitle}`;
+                logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> <strong>한국콘홀협회</strong> ${displayTitle}`;
             }
             
-            // 2. 브라우저 탭 제목(Title)도 실시간 변경
-            const pageTitle = document.getElementById('page-title');
-            if (pageTitle) {
-                pageTitle.textContent = `${displayTitle} - 운영본부`;
-            }
+            // 2. 브라우저 탭 제목(Title)을 표준 방식으로 실시간 변경
+            document.title = `${displayTitle} - 운영본부`;
 
-            // 3. Firebase DB 실시간 전송 (다른 기기 연동용)
+            // 3. Firebase DB 실시간 전송
             if (typeof db !== 'undefined') {
                 db.ref('kca_info/name').set(v);
             }
