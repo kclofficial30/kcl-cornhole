@@ -1185,11 +1185,11 @@ function resetTournamentAll() {
         if (logoTextNode) {
             logoTextNode.innerHTML = '<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> 데이터 실시간 통합';
         }
-    }     
+        
         location.reload();
     }
 }
-    
+
     function resetMAdmin(r, m) {
         if (!confirm("해당 경기 결과와 상위 진출 데이터를 모두 리셋하시겠습니까?")) return;
         const cat = categories[currentCatIdx]; const targetMatch = cat.rounds[r][m];
