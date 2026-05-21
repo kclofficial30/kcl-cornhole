@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v17.0</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v18.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -127,8 +127,7 @@
 <body>
 
 <nav class="nav-bar">
-    <a href="#" class="nav-logo"><img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> 데이터 실시간 통합</span></a>
-    <div class="nav-menu">
+<a href="#" class="nav-logo"><img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> <span id="header-title-text">데이터 실시간 통합</span></a>    <div class="nav-menu">
         <div id="nav-practice" class="nav-link active" onclick="showView('practice')">🎯 연습 경기</div>
         <div id="nav-bracket" class="nav-link" onclick="showView('bracket')">대진표</div>
         <div id="nav-livematches" class="nav-link" onclick="showView('livematches')">📡 라이브 매치</div>
@@ -497,8 +496,11 @@
     };
 
     function updateTournamentName() { const n = document.getElementById('hq-tournament-name').value; if(n.trim()) db.ref('kca_info/name').set(n); }
-    function updateTitleUIs() { document.getElementById('header-tournament-name').innerText = tournamentName; }
-
+function updateTitleUIs() { 
+    const headerText = document.getElementById('header-title-text');
+    if (headerText) headerText.innerText = tournamentName;
+    document.title = `${tournamentName} - 운영본부`;
+}
     function showView(v) {
         document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
         const targetView = document.getElementById('view-' + v);
@@ -1220,26 +1222,25 @@ function resetTournamentAll() {
         rd.readAsArrayBuffer(e.target.files[0]); 
     });
     window.addEventListener('beforeunload', () => { if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); } });
-// [최종 수정] 대회명 입력창 타이핑 시 상단 바 타이틀 실시간 강제 연동 및 DB 전송
+// [최종 수정] 대회명 입력창 타이핑 시 상단 텍스트 실시간 연동
 document.addEventListener('DOMContentLoaded', () => {
-    const tournamentInput = document.getElementById('tournament-name');
-    if (tournamentInput) {
-        tournamentInput.addEventListener('input', (e) => {
+    // 주의: 입력창의 실제 ID인 'hq-tournament-name'을 정확히 타겟팅합니다.
+    const hqInput = document.getElementById('hq-tournament-name');
+    if (hqInput) {
+        hqInput.addEventListener('input', (e) => {
             const v = e.target.value.trim();
             const displayTitle = v || "데이터 실시간 통합";
             
-            // 1. 화면 상단 타이틀 즉시 강제 변경 ('한국콘홀협회' 텍스트 보존)
-            const logoLink = document.querySelector('.nav-bar .nav-logo');
-            if (logoLink) {
-                logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> <strong>한국콘홀협회</strong> ${displayTitle}`;
-            }
+            // 1. 화면 상단 타이틀 텍스트 즉시 변경 (로고 이미지는 건드리지 않음)
+            const headerText = document.getElementById('header-title-text');
+            if (headerText) headerText.innerText = displayTitle;
             
-            // 2. 브라우저 탭 제목(Title)을 표준 방식으로 실시간 변경
+            // 2. 브라우저 탭 제목 실시간 변경
             document.title = `${displayTitle} - 운영본부`;
 
-            // 3. Firebase DB 실시간 전송
+            // 3. Firebase DB 실시간 전송 (다른 기기 연동)
             if (typeof db !== 'undefined') {
-                db.ref('kca_info/name').set(v);
+                db.ref('kca_info/name').set(displayTitle);
             }
         });
     }
