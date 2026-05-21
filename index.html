@@ -1178,9 +1178,14 @@ function resetTournamentAll() {
         db.ref('kca_tournament').set(null);
         db.ref('kca_info/name').set(null);
         
-        // [추가] 입력창 UI 비우기
+        // [추가] 초기화 시 입력창 UI 및 상단 타이틀 원상복구
         const tournamentInput = document.getElementById('tournament-name');
         if (tournamentInput) tournamentInput.value = '';
+        
+        const logoLink = document.querySelector('.nav-bar .nav-logo');
+        if (logoLink) {
+            logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> 데이터 실시간 통합`;
+        }
         
         location.reload();
     }
@@ -1223,13 +1228,27 @@ function resetTournamentAll() {
         rd.readAsArrayBuffer(e.target.files[0]); 
     });
     window.addEventListener('beforeunload', () => { if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); } });
-// [수정] 대회명 입력창 타이핑 시 Firebase DB로 실시간 전송
+// [최종 수정] 대회명 입력창 타이핑 시 상단 바 타이틀 실시간 강제 연동 및 DB 전송
 document.addEventListener('DOMContentLoaded', () => {
     const tournamentInput = document.getElementById('tournament-name');
     if (tournamentInput) {
         tournamentInput.addEventListener('input', (e) => {
             const v = e.target.value.trim();
-            // Firebase DB에 실시간으로 값을 기록합니다.
+            const displayTitle = v || "데이터 실시간 통합";
+            
+            // 1. 화면 상단 타이틀(KCL 로고 옆 글자) 즉시 강제 변경
+            const logoLink = document.querySelector('.nav-bar .nav-logo');
+            if (logoLink) {
+                logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> ${displayTitle}`;
+            }
+            
+            // 2. 브라우저 탭 제목(Title)도 실시간 변경
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) {
+                pageTitle.textContent = `${displayTitle} - 운영본부`;
+            }
+
+            // 3. Firebase DB 실시간 전송 (다른 기기 연동용)
             if (typeof db !== 'undefined') {
                 db.ref('kca_info/name').set(v);
             }
