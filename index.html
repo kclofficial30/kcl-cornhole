@@ -1174,17 +1174,13 @@
     
 function resetTournamentAll() {
     if (confirm("전체 데이터를 초기화하시겠습니까? (대회명도 함께 초기화됩니다)")) {
+        // Firebase DB 데이터 초기화
         db.ref('kca_tournament').set(null);
         db.ref('kca_info/name').set(null);
         
-        // [추가] 리셋 시 입력창과 상단 타이틀 글자 초기화
+        // [추가] 입력창 UI 비우기
         const tournamentInput = document.getElementById('tournament-name');
         if (tournamentInput) tournamentInput.value = '';
-        
-        const logoTextNode = document.querySelector('.nav-logo');
-        if (logoTextNode) {
-            logoTextNode.innerHTML = '<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> 데이터 실시간 통합';
-        }
         
         location.reload();
     }
@@ -1227,21 +1223,13 @@ function resetTournamentAll() {
         rd.readAsArrayBuffer(e.target.files[0]); 
     });
     window.addEventListener('beforeunload', () => { if (currentMatchKey) { db.ref('activeMatches/' + currentMatchKey).remove(); } });
-// [추가] 대회명 입력창 타이핑 시 상단 바 타이틀 실시간 연동 및 DB 전송
+// [수정] 대회명 입력창 타이핑 시 Firebase DB로 실시간 전송
 document.addEventListener('DOMContentLoaded', () => {
     const tournamentInput = document.getElementById('tournament-name');
     if (tournamentInput) {
         tournamentInput.addEventListener('input', (e) => {
             const v = e.target.value.trim();
-            const logoLink = document.querySelector('.nav-bar .nav-logo');
-            
-            if (logoLink) {
-                // 입력 값이 없으면 기본값인 '데이터 실시간 통합'으로 표시
-                const displayTitle = v || "데이터 실시간 통합";
-                logoLink.innerHTML = `<img src="https://kclofficial30.github.io/kcl-cornhole/logo.png" alt="KCL"> ${displayTitle}`;
-            }
-            
-            // 파이어베이스 DB 실시간 전송 (기존 연동 구조 유지)
+            // Firebase DB에 실시간으로 값을 기록합니다.
             if (typeof db !== 'undefined') {
                 db.ref('kca_info/name').set(v);
             }
