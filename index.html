@@ -422,8 +422,12 @@
     <section id="view-hq" class="view-section">
         <div class="kca-card">
             <h2>🏢 대회 운영본부</h2>
-            <div style="background:#fffbe6; padding:12px; border-radius:12px; margin-bottom:15px; border: 2px solid var(--gold);"><b style="font-size:0.85rem;">🏆 대회명:</b><input type="text" id="hq-tournament-name" onchange="updateTournamentName()" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ccc; font-weight:bold;"></div>
-            <div style="display:flex; flex-direction:column; gap:8px; background:#f8f9fa; padding:12px; border-radius:12px; margin-bottom:15px;">
+            <div style="background:#fffbe6; padding:12px; border-radius:12px; margin-bottom:15px; border: 2px solid var(--gold);"><b style="font-size:0.85rem;">🏆 대회명:</span>
+            <input type="text" id="tournament-name" class="flex-1 border border-yellow-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="대회명을 입력하세요">
+    
+            <button id="btn-apply-tournament" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-lg transition shrink-0">적용</button>
+            <button id="btn-reset-tournament" class="bg-gray-500 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg transition shrink-0">명칭 초기화</button>
+        </div>
                 <b>📂 명단 로드 (Excel):</b><input type="file" id="xlsx-hq" style="font-size:0.75rem;">
                 <p style="font-size:0.7rem; color:var(--gray); margin:0;">* 필수 열: [이름], [고유번호], [랭킹]</p>
                 <b>🎯 경기 방식 선택:</b>
@@ -477,7 +481,32 @@
     const db = firebase.database();
     let hqAuth = localStorage.getItem('kca_hq_code') || "1234", refAuth = localStorage.getItem('kca_ref_code') || "1234", pendingV = "", pendingMatch = null, categories = [], currentCatIdx = 0, refS = {red:0, blue:0}, refI = {r3:0, r1:0, b3:0, b1:0}, tRef = null, rLog = [], activeM = null, tournamentName = "데이터 실시간 통합", isTimerRunning = false;
     let currentMatchKey = null, activeMatchesData = {}, liveActiveKey = null;
+document.addEventListener('DOMContentLoaded', () => {
+    const headerTitle = document.getElementById('header-title');
+    const tournamentInput = document.getElementById('tournament-name');
+    const btnApply = document.getElementById('btn-apply-tournament');
+    const btnReset = document.getElementById('btn-reset-tournament');
+    
+    const DEFAULT_TITLE = '데이터 실시간 통합';
 
+    // 1. [적용] 버튼을 눌렀을 때만 상단 타이틀 반영
+    btnApply.addEventListener('click', () => {
+        const inputValue = tournamentInput.value.trim();
+        
+        if (inputValue !== '') {
+            headerTitle.textContent = inputValue;
+        } else {
+            // 입력창이 비어있는데 적용을 누르면 기본값으로 복구
+            headerTitle.textContent = DEFAULT_TITLE;
+        }
+    });
+
+    // 2. [명칭 초기화] 버튼을 눌렀을 때 대회명 영역만 초기화
+    btnReset.addEventListener('click', () => {
+        tournamentInput.value = ''; // 입력창 비우기
+        headerTitle.textContent = DEFAULT_TITLE; // 상단 타이틀 복구
+    });
+});
     // --- 연습용 전용 변수 ---
     let pracState = { red: '팀 레드', blue: '팀 블루', targetScore: 21, maxRounds: 0, timerMode: 15 };
     let pracS = { red: 0, blue: 0 };
