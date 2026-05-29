@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="page-title">K-Cornhole 실시간 통합 v20.0</title>
+    <title id="page-title">K-Cornhole 실시간 통합 v21.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -436,7 +436,7 @@
         <div class="kca-card" style="background: transparent; box-shadow: none; padding: 0;">
             <h2 style="margin-top:0; margin-bottom:15px; font-size:1.3rem;">🏢 대회 운영본부</h2>
             
-            <div class="hq-grid">
+<div class="hq-grid">
                 <div class="hq-panel">
                     <h3>대회 정보 설정</h3>
                     <div class="hq-form-group">
@@ -462,6 +462,14 @@
 
                 <div class="hq-panel">
                     <h3>진행 규칙</h3>
+                    
+                    <div class="hq-form-group">
+                        <label class="hq-label" style="color:var(--blue);">📝 규칙 적용 대상 종목</label>
+                        <select id="rule-target-category" class="hq-select" style="border-color:var(--blue); font-weight:bold; background-color:#f1f8ff;">
+                            <option value="all">전체 일괄 적용</option>
+                        </select>
+                    </div>
+
                     <div class="hq-form-group">
                         <label class="hq-label">🎯 경기 방식 선택</label>
                         <select id="assign-mode" class="hq-select">
@@ -519,9 +527,7 @@
                     </div>
                     <p style="font-size:0.75rem; color:var(--gray); margin-top:8px;">* 설정한 단계 이하의 라운드들만 일괄 할당되며, 상위 본선은 정통 규정이 부여됩니다.</p>
                 </div>
-            </div>
-
-            <button class="btn" style="background:var(--blue); color:white; height:55px; font-size:1.1rem; border-radius:10px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(9,132,227,0.3);" onclick="makeBracketsAndCloud()">대진표 생성 및 저장</button>
+            </div> <button class="btn" style="background:var(--blue); color:white; height:55px; font-size:1.1rem; border-radius:10px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(9,132,227,0.3);" onclick="makeBracketsAndCloud()">대진표 생성 및 저장</button>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
                 <button class="btn btn-dark" style="background:#2ecc71; height:45px;" onclick="downloadTournamentData()">📥 데이터 다운로드</button>
@@ -564,6 +570,19 @@
     </div>
 </div>
 <script>
+function updateRuleTargetSelector() {
+        const select = document.getElementById('rule-target-category');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="all">전체 일괄 적용</option>';
+        
+        categories.forEach((cat, index) => {
+            const option = document.createElement('option');
+            option.value = index; 
+            option.text = `[종목] ${cat.name}`;
+            select.appendChild(option);
+        });
+    }
     const firebaseConfig = { apiKey: "AIzaSyDsc6BCyg6dBeym-Ll_sXctxgEA6EpTBlg", authDomain: "korea-cornhole.firebaseapp.com", projectId: "korea-cornhole", databaseURL: "https://korea-cornhole-default-rtdb.firebaseio.com" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -972,6 +991,13 @@ function showView(v) {
 
 function makeBracketsAndCloud() {
         if (!categories.length) return alert("명단을 로드하세요.");
+
+        // 1. 드롭다운에서 선택된 타겟 읽기
+        const targetVal = document.getElementById('rule-target-category').value;
+        if (targetVal === 'all') {
+            if(!confirm("모든 종목에 현재 설정된 규칙이 일괄 적용됩니다. 진행하시겠습니까?")) return;
+        }
+
         const mode = document.getElementById('assign-mode').value;
         const thMode = document.getElementById('thref-mode').value; 
         
@@ -980,11 +1006,17 @@ function makeBracketsAndCloud() {
         const cRounds = parseInt(document.getElementById('custom-rule-rounds').value);
         const targetWeight = getStageWeight(ruleStage);
 
-        categories.forEach(cat => {
+        categories.forEach((cat, index) => {
+            // 2. 핵심 분기: '전체'가 아니면서, 현재 순회 중인 인덱스가 선택된 종목이 아니면 건너뜀
+            if (targetVal !== 'all' && parseInt(targetVal) !== index) return;
+
             cat.thref_mode = thMode; 
+            // 나중을 위해 카테고리에 룰 데이터 저장
+            cat.rules = { assignMode: mode, thMode: thMode, targetScore: cScore, maxRounds: cRounds };
+            
             let list = [...cat.players];
             
-            // 1. 기본 랭킹순(또는 랜덤) 정렬
+            // 3. 정렬 및 스네이크 배정 로직 (이전 수정본 반영)
             if (mode === 'random') { list.sort(() => Math.random() - 0.5); } 
             else { list.sort((a,b) => (Number(a.랭킹)||99) - (Number(b.랭킹)||99)); }
             
@@ -998,7 +1030,6 @@ function makeBracketsAndCloud() {
                 let p2 = 1; while (p2 * 2 <= N) p2 *= 2; 
                 const preN = N - p2; 
 
-                // 2. 16강(본선 첫 라운드)의 가상 슬롯 생성 및 스네이크 맵핑
                 let targetSlots = [];
                 if (mode === 'snake_versus') {
                     for (let i=0; i<p2/2; i++) { targetSlots.push(i); targetSlots.push(p2-1-i); }
@@ -1010,7 +1041,6 @@ function makeBracketsAndCloud() {
                     let prePlayers = list.slice(N - (preN * 2)); 
                     const byePlayers = list.slice(0, N - (preN * 2)); 
 
-                    // 3. 예선전 플레이어 매칭
                     if (mode === 'snake_versus') {
                         let snakedPre = []; let left = 0, right = prePlayers.length - 1;
                         while (left <= right) {
@@ -1021,11 +1051,8 @@ function makeBracketsAndCloud() {
                         prePlayers = snakedPre;
                     }
 
-                    // 4. 예선전 승자가 들어갈 본선 목표 슬롯 계산
                     let prelimTargetMs = [];
-                    for (let seed = p2 - preN; seed < p2; seed++) {
-                        prelimTargetMs.push(targetSlots.indexOf(seed));
-                    }
+                    for (let seed = p2 - preN; seed < p2; seed++) { prelimTargetMs.push(targetSlots.indexOf(seed)); }
 
                     let pm = []; 
                     for (let i=0; i<preN; i++) {
@@ -1035,28 +1062,22 @@ function makeBracketsAndCloud() {
 
                     let r1 = []; for (let i=0; i < p2 / 2; i++) r1.push({p1:"", p2:"", winner:null, score:"", stage:p2+"강"}); 
                     
-                    // 5. [오류 수정됨] 본선 슬롯에 부전승자(상위 랭커)를 정확한 랭킹 번호(seedIndex)에 맞춰 배치
                     for (let i=0; i<p2; i++) {
                         let seedIndex = targetSlots[i];
-                        if (seedIndex < p2 - preN) { // 이 자리가 부전승자 자리가 맞다면
+                        if (seedIndex < p2 - preN) { 
                             let matchIdx = Math.floor(i / 2);
                             let isP2 = (i % 2 === 1);
-                            // 단순히 차례대로(byeIdx) 넣지 않고, 본인 랭킹 번호(seedIndex)의 플레이어를 삽입
                             if (!isP2) r1[matchIdx].p1 = byePlayers[seedIndex].이름;
                             else r1[matchIdx].p2 = byePlayers[seedIndex].이름;
                         }
                     }
                     cat.rounds.push(r1);
                 } else {
-                    // 예선전이 없는 그룹 (이전에도 문제없이 잘 작동하던 부분)
                     let fR = []; 
-                    for (let i=0; i<p2/2; i++) {
-                        fR.push({p1:list[targetSlots[i*2]].이름, p2:list[targetSlots[i*2+1]].이름, winner:null, score:"", stage:N+"강"}); 
-                    }
+                    for (let i=0; i<p2/2; i++) { fR.push({p1:list[targetSlots[i*2]].이름, p2:list[targetSlots[i*2+1]].이름, winner:null, score:"", stage:N+"강"}); }
                     cat.rounds.push(fR);
                 }
                 
-                // 나머지 상위 라운드(8강, 4강 등) 생성 
                 let lastL = cat.rounds[cat.rounds.length-1].length; 
                 while(lastL > 1) { 
                     lastL /= 2; let nextR = []; 
@@ -1085,7 +1106,15 @@ function makeBracketsAndCloud() {
                 }); 
             });
         });
-        db.ref('kca_tournament').set(categories).then(() => { alert("대진표 및 커스텀 경기 규칙 설정이 완료되었습니다."); refreshUIs(); });
+
+        // 4. 저장 및 알림창 분기 처리
+        db.ref('kca_tournament').set(categories).then(() => { 
+            const msg = targetVal === 'all' 
+                ? "전체 종목 대진표 및 규칙 설정이 완료되었습니다." 
+                : `[${categories[targetVal].name}] 종목의 대진표 및 규칙 설정이 완료되었습니다.`;
+            alert(msg); 
+            refreshUIs(); 
+        });
     }
     
     function setupRefereeView(r, m) { 
@@ -1445,6 +1474,7 @@ function resetTournamentAll() {
                 countText.innerText = `${totalPlayers}명 로드됨`;
             }
             refreshUIs(); 
+updateRuleTargetSelector();
         }; 
         rd.readAsArrayBuffer(e.target.files[0]); 
     });
