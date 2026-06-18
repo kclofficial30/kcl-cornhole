@@ -666,7 +666,12 @@ function updateRuleTargetSelector() {
             select.appendChild(option);
         });
     }
-    const firebaseConfig = { apiKey: "AIzaSyDsc6BCyg6dBeym-Ll_sXctxgEA6EpTBlg", authDomain: "korea-cornhole.firebaseapp.com", projectId: "korea-cornhole", databaseURL: "https://korea-cornhole-default-rtdb.firebaseio.com" };
+const firebaseConfig = { 
+    apiKey: "AIzaSyDsc6BCyg6dBeym-Ll_sXctxgEA6EpTBlg", // kcl-cornhole의 실제 API 키로 확인 후 변경 권장
+    authDomain: "kcl-cornhole.firebaseapp.com", 
+    projectId: "kcl-cornhole", 
+    databaseURL: "https://kcl-cornhole-default-rtdb.asia-southeast1.firebasedatabase.app" 
+};
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let hqAuth = localStorage.getItem('kca_hq_code') || "1234", refAuth = localStorage.getItem('kca_ref_code') || "1234", pendingV = "", pendingMatch = null, categories = [], currentCatIdx = 0, refS = {red:0, blue:0}, refI = {r3:0, r1:0, b3:0, b1:0}, tRef = null, rLog = [], activeM = null, tournamentName = "데이터 실시간 통합", isTimerRunning = false;
