@@ -589,6 +589,25 @@
 
 <div id="detail-modal" class="overlay" onclick="closeDetail()"><div class="modal" onclick="event.stopPropagation()"><h3>📋 경기 상세 결과</h3><div id="detail-content" style="text-align:left; font-size:0.85rem; line-height:1.6;"></div><button class="btn btn-dark" style="margin-top:20px;" onclick="closeDetail()">닫기</button></div></div>
 
+<div id="manual-assign-modal" class="overlay" onclick="closeManualAssign()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:380px;">
+    <h3 style="margin-top:0;">✏️ 대상 직접 지정</h3>
+    <p id="manual-assign-stage" style="font-size:0.85rem; color:var(--gray); margin-bottom:16px;"></p>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:0.85rem; font-weight:bold; color:var(--red); display:block; margin-bottom:6px;">선수 A (p1)</label>
+      <select id="manual-p1-select" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:0.95rem;"></select>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:0.85rem; font-weight:bold; color:var(--blue); display:block; margin-bottom:6px;">선수 B (p2)</label>
+      <select id="manual-p2-select" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:0.95rem;"></select>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-dark" style="flex:2;" onclick="saveManualAssign()">저장</button>
+      <button class="btn" style="flex:1; background:#eee; color:#333;" onclick="closeManualAssign()">취소</button>
+    </div>
+  </div>
+</div>
+
 <div id="live-board-modal" class="overlay" onclick="closeLiveDetail()">
     <div class="modal" style="max-width:100%; width:100vw; height:100vh; padding:2vh 2vw; border-radius:0; display:flex; flex-direction:column; background:#111; box-sizing:border-box; position:relative;" onclick="event.stopPropagation()">
         <button onclick="closeLiveDetail()" style="position:absolute; top:20px; right:20px; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.4); color:#fff; font-size:32px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,0.5); transition:background 0.2s;" onmouseover="this.style.background='rgba(214,48,49,0.9)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">✕</button>
@@ -1362,7 +1381,11 @@ function createMatchBox(m, r, mi, isAdmin) {
                          
         // 운영자용 초기화 버튼
         if (isAdmin && m.winner) {
-            box.innerHTML += `<div style="color:var(--red); text-align:right; font-size:0.65rem; margin-top:4px; cursor:pointer;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋 (기록삭제)</div>`; 
+            box.innerHTML += `<div style="color:var(--red); text-align:right; font-size:0.65rem; margin-top:4px; cursor:pointer;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋 (기록삭제)</div>`;
+        }
+        // 운영자용 대상 지정 버튼 (경기 미완료 시)
+        if (isAdmin && !m.winner) {
+            box.innerHTML += `<div style="color:var(--blue); text-align:right; font-size:0.65rem; margin-top:4px; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); openManualAssign(${r},${mi})">✏️ 대상 지정</div>`;
         }
         
         return box; 
@@ -1535,6 +1558,51 @@ function resetTournamentAll() {
         const nextMatch = nextR[targetIdx]; if (!nextMatch) return;
         if (r === 0 && cat.rounds[0][0].stage === "예선전") { nextMatch.p1 = ""; nextMatch.p2 = ""; } else { if (isP1) nextMatch.p1 = ""; else nextMatch.p2 = ""; }
         if (nextMatch.winner) { nextMatch.winner = null; nextMatch.score = ""; nextMatch.redP = null; nextMatch.blueP = null; clearNext(r + 1, targetIdx); }
+    }
+
+    let _manualAssignCtx = null;
+    function openManualAssign(r, mi) {
+        const cat = categories[currentCatIdx];
+        const match = cat.rounds[r][mi];
+        _manualAssignCtx = { r, mi };
+
+        document.getElementById('manual-assign-stage').textContent =
+            `[${cat.name}] ${match.stage} — ${r+1}라운드 ${mi+1}번 매치`;
+
+        const allPlayers = (cat.players || []).map(p => p.이름).filter(Boolean);
+        const opts = ['<option value="">-- 선수 선택 --</option>',
+            ...allPlayers.map(n => `<option value="${n}"${match.p1===n?' selected':''}>${n}</option>`)].join('');
+        document.getElementById('manual-p1-select').innerHTML = opts;
+        document.getElementById('manual-p2-select').innerHTML = opts.replace(
+            `value="${match.p1}" selected`, `value="${match.p1}"`
+        ).replace(
+            match.p2 ? `value="${match.p2}"` : '___NONE___',
+            match.p2 ? `value="${match.p2}" selected` : '___NONE___'
+        );
+        // 직접 selected 처리
+        const s2 = document.getElementById('manual-p2-select');
+        if (match.p2) s2.value = match.p2;
+
+        document.getElementById('manual-assign-modal').style.display = 'flex';
+    }
+    function closeManualAssign() {
+        document.getElementById('manual-assign-modal').style.display = 'none';
+        _manualAssignCtx = null;
+    }
+    function saveManualAssign() {
+        if (!_manualAssignCtx) return;
+        const p1 = document.getElementById('manual-p1-select').value;
+        const p2 = document.getElementById('manual-p2-select').value;
+        if (!p1 || !p2) return alert("두 선수를 모두 선택하세요.");
+        if (p1 === p2) return alert("같은 선수를 양쪽에 지정할 수 없습니다.");
+        const { r, mi } = _manualAssignCtx;
+        const cat = categories[currentCatIdx];
+        cat.rounds[r][mi].p1 = p1;
+        cat.rounds[r][mi].p2 = p2;
+        db.ref('kca_tournament').set(categories).then(() => {
+            closeManualAssign();
+            refreshUIs();
+        });
     }
 
     function changeAdminCode() { let t = prompt("1: HQ, 2: 심판", "1"); let n = prompt("새 코드:"); if(n) { if(t==="1"){ hqAuth=n; localStorage.setItem('kca_hq_code',n); } else { refAuth=n; localStorage.setItem('kca_ref_code',n); } alert("변경됨"); } }
