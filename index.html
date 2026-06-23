@@ -503,7 +503,6 @@
                             <option value="snake_versus">🐍 스네이크 배정 (1순위 vs 최하위)</option>
                             <option value="random">🎲 랜덤 배정 (토너먼트)</option>
                             <option value="full_league">🏟️ 풀토너먼트 (종목별 리그전)</option>
-                            <option value="manual">✋ 대상 직접 지정</option>
                         </select>
                     </div>
                     
@@ -589,25 +588,6 @@
 </footer>
 
 <div id="detail-modal" class="overlay" onclick="closeDetail()"><div class="modal" onclick="event.stopPropagation()"><h3>📋 경기 상세 결과</h3><div id="detail-content" style="text-align:left; font-size:0.85rem; line-height:1.6;"></div><button class="btn btn-dark" style="margin-top:20px;" onclick="closeDetail()">닫기</button></div></div>
-
-<div id="manual-assign-modal" class="overlay" onclick="closeManualAssign()">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:380px;">
-    <h3 style="margin-top:0;">✏️ 대상 직접 지정</h3>
-    <p id="manual-assign-stage" style="font-size:0.85rem; color:var(--gray); margin-bottom:16px;"></p>
-    <div style="margin-bottom:14px;">
-      <label style="font-size:0.85rem; font-weight:bold; color:var(--red); display:block; margin-bottom:6px;">선수 A (p1)</label>
-      <select id="manual-p1-select" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:0.95rem;"></select>
-    </div>
-    <div style="margin-bottom:20px;">
-      <label style="font-size:0.85rem; font-weight:bold; color:var(--blue); display:block; margin-bottom:6px;">선수 B (p2)</label>
-      <select id="manual-p2-select" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:0.95rem;"></select>
-    </div>
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-dark" style="flex:2;" onclick="saveManualAssign()">저장</button>
-      <button class="btn" style="flex:1; background:#eee; color:#333;" onclick="closeManualAssign()">취소</button>
-    </div>
-  </div>
-</div>
 
 <div id="live-board-modal" class="overlay" onclick="closeLiveDetail()">
     <div class="modal" style="max-width:100%; width:100vw; height:100vh; padding:2vh 2vw; border-radius:0; display:flex; flex-direction:column; background:#111; box-sizing:border-box; position:relative;" onclick="event.stopPropagation()">
@@ -1133,22 +1113,6 @@ function makeBracketsAndCloud() {
                 let matches = [];
                 for(let i=0; i<list.length; i++) for(let j=i+1; j<list.length; j++) matches.push({p1: list[i].이름, p2: list[j].이름, winner:null, score:"", stage:"리그전"});
                 cat.rounds.push(matches);
-            } else if (mode === 'manual') {
-                const N = list.length; if (N < 2) return;
-                let p2 = 1; while (p2 * 2 <= N) p2 *= 2;
-                const preN = N - p2;
-                if (preN > 0) {
-                    let pm = [];
-                    for (let i = 0; i < preN; i++) pm.push({p1:"", p2:"", winner:null, score:"", stage:"예선전", targetM: i});
-                    cat.rounds.push(pm);
-                    let r1 = [];
-                    for (let i = 0; i < p2/2; i++) r1.push({p1:"", p2:"", winner:null, score:"", stage:p2+"강"});
-                    cat.rounds.push(r1);
-                } else {
-                    let fR = [];
-                    for (let i = 0; i < p2/2; i++) fR.push({p1:"", p2:"", winner:null, score:"", stage:N+"강"});
-                    cat.rounds.push(fR);
-                }
             } else {
                 const N = list.length; if (N < 2) return;
                 let p2 = 1; while (p2 * 2 <= N) p2 *= 2; 
@@ -1215,9 +1179,9 @@ function makeBracketsAndCloud() {
                 }
             }
             
-            cat.rounds.forEach((round, rIdx) => { 
-                round.forEach((m, mIdx) => { 
-                    m.matchId = "m_" + cat.name.replace(/\s+/g, '') + "_" + rIdx + "_" + mIdx; 
+            cat.rounds.forEach((round, rIdx) => {
+                round.forEach((m, mIdx) => {
+                    m.matchId = "m_" + cat.name.replace(/\s+/g, '') + "_" + rIdx + "_" + mIdx;
                     
                     const stageWeight = getStageWeight(m.stage);
                     if (ruleStage !== "none" && stageWeight >= targetWeight) {
@@ -1400,10 +1364,6 @@ function createMatchBox(m, r, mi, isAdmin) {
         if (isAdmin && m.winner) {
             box.innerHTML += `<div style="color:var(--red); text-align:right; font-size:0.65rem; margin-top:4px; cursor:pointer;" onclick="event.stopPropagation(); resetMAdmin(${r},${mi})">리셋 (기록삭제)</div>`;
         }
-        // 운영자용 대상 지정 버튼 (경기 미완료 시)
-        if (isAdmin && !m.winner) {
-            box.innerHTML += `<div style="color:var(--blue); text-align:right; font-size:0.65rem; margin-top:4px; cursor:pointer; font-weight:bold;" onclick="event.stopPropagation(); openManualAssign(${r},${mi})">✏️ 대상 지정</div>`;
-        }
         
         return box; 
     }
@@ -1575,59 +1535,6 @@ function resetTournamentAll() {
         const nextMatch = nextR[targetIdx]; if (!nextMatch) return;
         if (r === 0 && cat.rounds[0][0].stage === "예선전") { nextMatch.p1 = ""; nextMatch.p2 = ""; } else { if (isP1) nextMatch.p1 = ""; else nextMatch.p2 = ""; }
         if (nextMatch.winner) { nextMatch.winner = null; nextMatch.score = ""; nextMatch.redP = null; nextMatch.blueP = null; clearNext(r + 1, targetIdx); }
-    }
-
-    let _manualAssignCtx = null;
-    function openManualAssign(r, mi) {
-        const cat = categories[currentCatIdx];
-        const match = cat.rounds[r][mi];
-        _manualAssignCtx = { r, mi };
-
-        document.getElementById('manual-assign-stage').textContent =
-            `[${cat.name}] ${match.stage} — ${r+1}라운드 ${mi+1}번 매치`;
-
-        // 현재 매치를 제외한 모든 라운드에서 이미 배정된 선수 수집
-        const usedPlayers = new Set();
-        cat.rounds.forEach((round, rIdx) => {
-            round.forEach((m, mIdx) => {
-                if (rIdx === r && mIdx === mi) return;
-                if (m.p1) usedPlayers.add(m.p1);
-                if (m.p2) usedPlayers.add(m.p2);
-            });
-        });
-
-        const allPlayers = (cat.players || []).map(p => p.이름).filter(Boolean);
-        // 미배정 선수 + 현재 매치에 이미 지정된 선수만 표시
-        const available = allPlayers.filter(n => !usedPlayers.has(n) || n === match.p1 || n === match.p2);
-
-        const makeOpts = (selected) => [
-            '<option value="">-- 선수 선택 --</option>',
-            ...available.map(n => `<option value="${n}"${n === selected ? ' selected' : ''}>${n}</option>`)
-        ].join('');
-
-        document.getElementById('manual-p1-select').innerHTML = makeOpts(match.p1);
-        document.getElementById('manual-p2-select').innerHTML = makeOpts(match.p2);
-
-        document.getElementById('manual-assign-modal').style.display = 'flex';
-    }
-    function closeManualAssign() {
-        document.getElementById('manual-assign-modal').style.display = 'none';
-        _manualAssignCtx = null;
-    }
-    function saveManualAssign() {
-        if (!_manualAssignCtx) return;
-        const p1 = document.getElementById('manual-p1-select').value;
-        const p2 = document.getElementById('manual-p2-select').value;
-        if (!p1 || !p2) return alert("두 선수를 모두 선택하세요.");
-        if (p1 === p2) return alert("같은 선수를 양쪽에 지정할 수 없습니다.");
-        const { r, mi } = _manualAssignCtx;
-        const cat = categories[currentCatIdx];
-        cat.rounds[r][mi].p1 = p1;
-        cat.rounds[r][mi].p2 = p2;
-        db.ref('kca_tournament').set(categories).then(() => {
-            closeManualAssign();
-            refreshUIs();
-        });
     }
 
     function changeAdminCode() { let t = prompt("1: HQ, 2: 심판", "1"); let n = prompt("새 코드:"); if(n) { if(t==="1"){ hqAuth=n; localStorage.setItem('kca_hq_code',n); } else { refAuth=n; localStorage.setItem('kca_ref_code',n); } alert("변경됨"); } }
