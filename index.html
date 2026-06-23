@@ -503,6 +503,7 @@
                             <option value="snake_versus">🐍 스네이크 배정 (1순위 vs 최하위)</option>
                             <option value="random">🎲 랜덤 배정 (토너먼트)</option>
                             <option value="full_league">🏟️ 풀토너먼트 (종목별 리그전)</option>
+                            <option value="manual">✋ 대상 직접 지정</option>
                         </select>
                     </div>
                     
@@ -1132,6 +1133,22 @@ function makeBracketsAndCloud() {
                 let matches = [];
                 for(let i=0; i<list.length; i++) for(let j=i+1; j<list.length; j++) matches.push({p1: list[i].이름, p2: list[j].이름, winner:null, score:"", stage:"리그전"});
                 cat.rounds.push(matches);
+            } else if (mode === 'manual') {
+                const N = list.length; if (N < 2) return;
+                let p2 = 1; while (p2 * 2 <= N) p2 *= 2;
+                const preN = N - p2;
+                if (preN > 0) {
+                    let pm = [];
+                    for (let i = 0; i < preN; i++) pm.push({p1:"", p2:"", winner:null, score:"", stage:"예선전", targetM: i});
+                    cat.rounds.push(pm);
+                    let r1 = [];
+                    for (let i = 0; i < p2/2; i++) r1.push({p1:"", p2:"", winner:null, score:"", stage:p2+"강"});
+                    cat.rounds.push(r1);
+                } else {
+                    let fR = [];
+                    for (let i = 0; i < p2/2; i++) fR.push({p1:"", p2:"", winner:null, score:"", stage:N+"강"});
+                    cat.rounds.push(fR);
+                }
             } else {
                 const N = list.length; if (N < 2) return;
                 let p2 = 1; while (p2 * 2 <= N) p2 *= 2; 
@@ -1569,19 +1586,27 @@ function resetTournamentAll() {
         document.getElementById('manual-assign-stage').textContent =
             `[${cat.name}] ${match.stage} — ${r+1}라운드 ${mi+1}번 매치`;
 
+        // 현재 매치를 제외한 모든 라운드에서 이미 배정된 선수 수집
+        const usedPlayers = new Set();
+        cat.rounds.forEach((round, rIdx) => {
+            round.forEach((m, mIdx) => {
+                if (rIdx === r && mIdx === mi) return;
+                if (m.p1) usedPlayers.add(m.p1);
+                if (m.p2) usedPlayers.add(m.p2);
+            });
+        });
+
         const allPlayers = (cat.players || []).map(p => p.이름).filter(Boolean);
-        const opts = ['<option value="">-- 선수 선택 --</option>',
-            ...allPlayers.map(n => `<option value="${n}"${match.p1===n?' selected':''}>${n}</option>`)].join('');
-        document.getElementById('manual-p1-select').innerHTML = opts;
-        document.getElementById('manual-p2-select').innerHTML = opts.replace(
-            `value="${match.p1}" selected`, `value="${match.p1}"`
-        ).replace(
-            match.p2 ? `value="${match.p2}"` : '___NONE___',
-            match.p2 ? `value="${match.p2}" selected` : '___NONE___'
-        );
-        // 직접 selected 처리
-        const s2 = document.getElementById('manual-p2-select');
-        if (match.p2) s2.value = match.p2;
+        // 미배정 선수 + 현재 매치에 이미 지정된 선수만 표시
+        const available = allPlayers.filter(n => !usedPlayers.has(n) || n === match.p1 || n === match.p2);
+
+        const makeOpts = (selected) => [
+            '<option value="">-- 선수 선택 --</option>',
+            ...available.map(n => `<option value="${n}"${n === selected ? ' selected' : ''}>${n}</option>`)
+        ].join('');
+
+        document.getElementById('manual-p1-select').innerHTML = makeOpts(match.p1);
+        document.getElementById('manual-p2-select').innerHTML = makeOpts(match.p2);
 
         document.getElementById('manual-assign-modal').style.display = 'flex';
     }
